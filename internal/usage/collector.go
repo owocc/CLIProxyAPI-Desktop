@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"easycliproxyapi/internal/model"
@@ -24,21 +25,81 @@ type Collector struct {
 	running    bool
 	cancelFn   context.CancelFunc
 	onInserted func(count int)
+
+	// Runtime collector status
+	statusMu      sync.RWMutex
+	statusState   string // "waiting-core" | "collecting" | "error"
+	statusMessage string
+	lastCollected *string
+	totalRecords  uint64
+
+	// Sticky queue key
+	selectedQueueKey atomic.Value // string
 }
 
 func NewCollector(storage *Storage, onInserted func(count int)) *Collector {
-	return &Collector{
-		storage:    storage,
-		onInserted: onInserted,
+	c := &Collector{
+		storage:       storage,
+		onInserted:    onInserted,
+		statusState:   "waiting-core",
+		statusMessage: "等待内核就绪",
 	}
+	c.selectedQueueKey.Store("usage")
+
+	// Initialize initial record count
+	if storage != nil {
+		if cnt, err := storage.TotalRecords(); err == nil {
+			c.totalRecords = cnt
+		}
+	}
+	return c
+}
+
+func (c *Collector) Status() model.CollectorStatus {
+	c.statusMu.RLock()
+	defer c.statusMu.RUnlock()
+
+	var lastCollected *string
+	if c.lastCollected != nil {
+		cpy := *c.lastCollected
+		lastCollected = &cpy
+	}
+
+	return model.CollectorStatus{
+		State:           c.statusState,
+		Message:         c.statusMessage,
+		LastCollectedAt: lastCollected,
+		TotalRecords:    c.totalRecords,
+	}
+}
+
+func (c *Collector) setStatus(state, msg string) {
+	c.statusMu.Lock()
+	defer c.statusMu.Unlock()
+	c.statusState = state
+	c.statusMessage = msg
+}
+
+func (c *Collector) markCollected(inserted int) {
+	c.statusMu.Lock()
+	defer c.statusMu.Unlock()
+	now := time.Now().Format(time.RFC3339)
+	c.lastCollected = &now
+	if inserted > 0 {
+		c.totalRecords += uint64(inserted)
+	}
+	c.statusState = "collecting"
+	c.statusMessage = fmt.Sprintf("已采集记录，当前累计 %d 条", c.totalRecords)
 }
 
 // UpdateConfig updates the target management port and auth key.
 func (c *Collector) UpdateConfig(port int, secretKey string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.port = port
-	c.secretKey = secretKey
+	if c.port != port || c.secretKey != secretKey {
+		c.port = port
+		c.secretKey = secretKey
+	}
 }
 
 // Start begins background collection.
@@ -68,42 +129,274 @@ func (c *Collector) Stop() {
 }
 
 func (c *Collector) runLoop(ctx context.Context) {
-	ticker := time.NewTicker(4 * time.Second)
-	defer ticker.Stop()
+	var (
+		activeSubConn   net.Conn
+		activeSubReader *bufio.Reader
+		subPort         int
+		subSecret       string
+		subRetryAt      time.Time
+		lastCleanupAt   time.Time
+		backoffSec      = 1
+	)
+
+	cleanupSub := func() {
+		if activeSubConn != nil {
+			_ = activeSubConn.Close()
+			activeSubConn = nil
+			activeSubReader = nil
+		}
+	}
+	defer cleanupSub()
 
 	for {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return
-		case <-ticker.C:
-			c.mu.Lock()
-			port := c.port
-			key := c.secretKey
-			c.mu.Unlock()
+		}
 
-			if port <= 0 {
-				continue
-			}
+		c.mu.Lock()
+		currentPort := c.port
+		currentSecret := c.secretKey
+		c.mu.Unlock()
 
-			// Try LPOP via TCP RESP, fallback to HTTP
-			records, err := c.pullViaRESP(port, key)
-			if err != nil {
-				// Fallback to HTTP
-				records, _ = c.pullViaHTTP(port, key)
-			}
+		// Detect configuration drift (port or secret changed)
+		if subPort != currentPort || subSecret != currentSecret {
+			cleanupSub()
+			subPort = currentPort
+			subSecret = currentSecret
+			subRetryAt = time.Now()
+		}
 
-			if len(records) > 0 {
-				inserted, err := c.storage.InsertBatch(records)
-				if err == nil && inserted > 0 && c.onInserted != nil {
+		now := time.Now()
+
+		// 1. Hourly inbox cleanup
+		if now.Sub(lastCleanupAt) >= time.Hour {
+			_ = c.storage.cleanupInbox()
+			lastCleanupAt = now
+		}
+
+		// 2. Process inbox every round
+		if inserted, deleted, err := c.storage.ProcessInbox(500); err == nil {
+			if inserted > 0 || deleted > 0 {
+				c.markCollected(inserted)
+				if c.onInserted != nil {
 					c.onInserted(inserted)
 				}
 			}
 		}
+
+		// 3. Core ready check
+		if currentPort <= 0 {
+			cleanupSub()
+			c.setStatus("waiting-core", "等待内核就绪 (端口未分配)")
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second):
+				continue
+			}
+		}
+
+		// 4. Try establishing RESP subscription if not active
+		if activeSubConn == nil && now.After(subRetryAt) {
+			conn, reader, err := c.connectSubscription(currentPort, currentSecret)
+			if err == nil {
+				activeSubConn = conn
+				activeSubReader = reader
+				c.setStatus("collecting", "已连接 CPA usage 实时订阅")
+				// Drain any backlog in queue
+				_ = c.backfillQueue(currentPort, currentSecret)
+				backoffSec = 1
+				continue
+			}
+			// Subscription failed, retry in 30s and fall back to queue pulling
+			subRetryAt = now.Add(30 * time.Second)
+			c.setStatus("collecting", fmt.Sprintf("使用队列/HTTP 兼容模式采集 (实时订阅将在 30 秒后重试: %v)", err))
+		}
+
+		// 5. If subscription is active, read stream with 2s timeout
+		if activeSubConn != nil {
+			msg, err := c.readSubscriptionMessage(activeSubConn, activeSubReader)
+			if err == nil {
+				if msg != "" && !IsIgnorableUsageMessage(msg) {
+					_, _ = c.storage.EnqueueRawMessages("redis_subscribe:usage", []string{msg})
+					if ins, _, err := c.storage.ProcessInbox(100); err == nil && ins > 0 {
+						c.markCollected(ins)
+						if c.onInserted != nil {
+							c.onInserted(ins)
+						}
+					}
+				}
+				backoffSec = 1
+				continue
+			}
+
+			// Check if read timed out (heartbeat) or real disconnect
+			if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
+				// 2s timeout is expected heartbeat
+				continue
+			}
+
+			// Connection severed
+			cleanupSub()
+			subRetryAt = time.Now().Add(30 * time.Second)
+			c.setStatus("collecting", fmt.Sprintf("实时订阅断开，已切换队列兼容模式: %v", err))
+		}
+
+		// 6. Fallback queue pull via LPOP / HTTP
+		msgs, source, err := c.pullQueue(currentPort, currentSecret)
+		if err == nil && len(msgs) > 0 {
+			_, _ = c.storage.EnqueueRawMessages(source, msgs)
+			if ins, _, err := c.storage.ProcessInbox(500); err == nil && ins > 0 {
+				c.markCollected(ins)
+				if c.onInserted != nil {
+					c.onInserted(ins)
+				}
+			}
+			backoffSec = 1
+		} else if err != nil {
+			c.setStatus("error", fmt.Sprintf("队列采集失败: %v", err))
+			// Backoff: 1s -> 2s -> 4s -> 8s -> 10s
+			backoffSec = backoffSec * 2
+			if backoffSec > 10 {
+				backoffSec = 10
+			}
+		} else {
+			// Empty queue, normal idle
+			backoffSec = 1
+		}
+
+		// Wait backoff duration or until cancelled
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Duration(backoffSec) * time.Second):
+		}
 	}
 }
 
-// pullViaRESP connects via raw TCP and sends LPOP usage 10000.
-func (c *Collector) pullViaRESP(port int, secretKey string) ([]model.UsageRecord, error) {
+func (c *Collector) connectSubscription(port int, secretKey string) (net.Conn, *bufio.Reader, error) {
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	reader := bufio.NewReader(conn)
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+
+	// Send AUTH
+	if secretKey != "" {
+		if _, err := fmt.Fprintf(conn, "*2\r\n$4\r\nAUTH\r\n$%d\r\n%s\r\n", len(secretKey), secretKey); err != nil {
+			_ = conn.Close()
+			return nil, nil, err
+		}
+		authResp, err := reader.ReadString('\n')
+		if err != nil || !strings.HasPrefix(authResp, "+") {
+			_ = conn.Close()
+			return nil, nil, fmt.Errorf("AUTH 认证失败: %s", strings.TrimSpace(authResp))
+		}
+	}
+
+	// Send SUBSCRIBE usage
+	if _, err := fmt.Fprintf(conn, "*2\r\n$9\r\nSUBSCRIBE\r\n$5\r\nusage\r\n"); err != nil {
+		_ = conn.Close()
+		return nil, nil, err
+	}
+
+	// Read subscription ack
+	ackLine, err := reader.ReadString('\n')
+	if err != nil || (!strings.HasPrefix(ackLine, "*") && !strings.HasPrefix(ackLine, "+")) {
+		_ = conn.Close()
+		return nil, nil, fmt.Errorf("SUBSCRIBE usage 响应失败: %s", strings.TrimSpace(ackLine))
+	}
+
+	return conn, reader, nil
+}
+
+func (c *Collector) readSubscriptionMessage(conn net.Conn, reader *bufio.Reader) (string, error) {
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+
+	line = strings.TrimSpace(line)
+	if strings.HasPrefix(line, "-") {
+		return "", fmt.Errorf("RESP error: %s", line)
+	}
+
+	// Message frame is an array of 3 elements: *3\r\n$7\r\nmessage\r\n$5\r\nusage\r\n${len}\r\n{payload}\r\n
+	if !strings.HasPrefix(line, "*") {
+		return "", nil // Skip non-array frames
+	}
+
+	countStr := strings.TrimPrefix(line, "*")
+	count, err := strconv.Atoi(countStr)
+	if err != nil || count != 3 {
+		return "", nil
+	}
+
+	// Read element 1 ($7 message)
+	el1, err := readBulkString(reader)
+	if err != nil || !strings.EqualFold(el1, "message") {
+		return "", nil
+	}
+
+	// Read element 2 ($5 usage)
+	el2, err := readBulkString(reader)
+	if err != nil || !strings.EqualFold(el2, "usage") {
+		return "", nil
+	}
+
+	// Read element 3 (payload)
+	payload, err := readBulkString(reader)
+	if err != nil {
+		return "", err
+	}
+
+	return payload, nil
+}
+
+func (c *Collector) backfillQueue(port int, secretKey string) error {
+	msgs, source, err := c.pullQueue(port, secretKey)
+	if err == nil && len(msgs) > 0 {
+		_, _ = c.storage.EnqueueRawMessages(source, msgs)
+	}
+	return err
+}
+
+func (c *Collector) pullQueue(port int, secretKey string) ([]string, string, error) {
+	// Try LPOP via TCP RESP first
+	selectedKey := c.selectedQueueKey.Load().(string)
+	msgs, err := c.pullViaRESPWithKey(port, secretKey, selectedKey)
+	if err == nil {
+		return msgs, "redis_pull:" + selectedKey, nil
+	}
+
+	// If error indicates unsupported key, try legacy "queue"
+	errStr := strings.ToLower(err.Error())
+	if strings.Contains(errStr, "unsupported channel") || strings.Contains(errStr, "unsupported queue") {
+		legacyKey := "queue"
+		if selectedKey == "queue" {
+			legacyKey = "usage"
+		}
+		if legacyMsgs, lErr := c.pullViaRESPWithKey(port, secretKey, legacyKey); lErr == nil {
+			c.selectedQueueKey.Store(legacyKey)
+			return legacyMsgs, "redis_pull:" + legacyKey, nil
+		}
+	}
+
+	// Fall back to HTTP GET /v0/management/usage-queue
+	httpMsgs, hErr := c.pullViaHTTP(port, secretKey)
+	if hErr == nil {
+		return httpMsgs, "http_pull:usage_queue", nil
+	}
+
+	return nil, "", fmt.Errorf("RESP(%v) / HTTP(%v)", err, hErr)
+}
+
+func (c *Collector) pullViaRESPWithKey(port int, secretKey, queueKey string) ([]string, error) {
 	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
@@ -114,28 +407,21 @@ func (c *Collector) pullViaRESP(port int, secretKey string) ([]model.UsageRecord
 	_ = conn.SetDeadline(time.Now().Add(4 * time.Second))
 	reader := bufio.NewReader(conn)
 
-	// Send AUTH if key provided
 	if secretKey != "" {
-		_, err := fmt.Fprintf(conn, "*2\r\n$4\r\nAUTH\r\n$%d\r\n%s\r\n", len(secretKey), secretKey)
-		if err != nil {
+		if _, err := fmt.Fprintf(conn, "*2\r\n$4\r\nAUTH\r\n$%d\r\n%s\r\n", len(secretKey), secretKey); err != nil {
 			return nil, err
 		}
 		authResp, err := reader.ReadString('\n')
 		if err != nil || !strings.HasPrefix(authResp, "+") {
-			return nil, fmt.Errorf("RESP AUTH 失败: %s", authResp)
+			return nil, fmt.Errorf("RESP AUTH 失败: %s", strings.TrimSpace(authResp))
 		}
 	}
 
-	// Try LPOP usage 10000
-	_, err = fmt.Fprintf(conn, "*3\r\n$4\r\nLPOP\r\n$5\r\nusage\r\n$5\r\n10000\r\n")
-	if err != nil {
+	// LPOP <key> 10000
+	if _, err := fmt.Fprintf(conn, "*3\r\n$4\r\nLPOP\r\n$%d\r\n%s\r\n$5\r\n10000\r\n", len(queueKey), queueKey); err != nil {
 		return nil, err
 	}
 
-	return parseRESPArray(reader)
-}
-
-func parseRESPArray(reader *bufio.Reader) ([]model.UsageRecord, error) {
 	line, err := reader.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -143,14 +429,28 @@ func parseRESPArray(reader *bufio.Reader) ([]model.UsageRecord, error) {
 
 	line = strings.TrimSpace(line)
 	if strings.HasPrefix(line, "-") {
-		return nil, fmt.Errorf("RESP 错误: %s", line)
+		return nil, fmt.Errorf("RESP error: %s", line)
 	}
 	if line == "*-1" || line == "$-1" {
 		return nil, nil // Nil response
 	}
 
+	// Handle single bulk string
+	if strings.HasPrefix(line, "$") {
+		strLen, err := strconv.Atoi(strings.TrimPrefix(line, "$"))
+		if err != nil || strLen < 0 {
+			return nil, nil
+		}
+		buf := make([]byte, strLen)
+		if _, err := io.ReadFull(reader, buf); err != nil {
+			return nil, err
+		}
+		_, _ = reader.Discard(2)
+		return []string{string(buf)}, nil
+	}
+
 	if !strings.HasPrefix(line, "*") {
-		return nil, fmt.Errorf("未知响应头: %s", line)
+		return nil, fmt.Errorf("未知 RESP 响应头: %s", line)
 	}
 
 	countStr := strings.TrimPrefix(line, "*")
@@ -159,40 +459,18 @@ func parseRESPArray(reader *bufio.Reader) ([]model.UsageRecord, error) {
 		return nil, nil
 	}
 
-	var records []model.UsageRecord
+	var results []string
 	for i := 0; i < count; i++ {
-		// Read bulk string length
-		lenLine, err := reader.ReadString('\n')
+		str, err := readBulkString(reader)
 		if err != nil {
 			break
 		}
-		lenLine = strings.TrimSpace(lenLine)
-		if !strings.HasPrefix(lenLine, "$") {
-			continue
-		}
-		strLen, err := strconv.Atoi(strings.TrimPrefix(lenLine, "$"))
-		if err != nil || strLen < 0 {
-			continue
-		}
-
-		// Read payload + \r\n
-		payloadBuf := make([]byte, strLen)
-		if _, err := io.ReadFull(reader, payloadBuf); err != nil {
-			break
-		}
-		// Discard trailing \r\n
-		_, _ = reader.Discard(2)
-
-		if record, ok := parseUsageJSON(payloadBuf); ok {
-			records = append(records, record)
-		}
+		results = append(results, str)
 	}
-
-	return records, nil
+	return results, nil
 }
 
-// pullViaHTTP falls back to GET /v0/management/usage-queue.
-func (c *Collector) pullViaHTTP(port int, secretKey string) ([]model.UsageRecord, error) {
+func (c *Collector) pullViaHTTP(port int, secretKey string) ([]string, error) {
 	url := fmt.Sprintf("http://127.0.0.1:%d/v0/management/usage-queue?count=10000", port)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -219,79 +497,31 @@ func (c *Collector) pullViaHTTP(port int, secretKey string) ([]model.UsageRecord
 		return nil, err
 	}
 
-	var records []model.UsageRecord
-	for _, item := range rawItems {
-		if r, ok := parseUsageJSON(item); ok {
-			records = append(records, r)
-		}
+	var results []string
+	for _, it := range rawItems {
+		results = append(results, string(it))
 	}
-	return records, nil
+	return results, nil
 }
 
-func parseUsageJSON(data []byte) (model.UsageRecord, bool) {
-	var raw struct {
-		Id               string  `json:"id"`
-		RequestId        string  `json:"request_id"`
-		Timestamp        int64   `json:"timestamp"`
-		CreatedAt        int64   `json:"created_at"`
-		Model            string  `json:"model"`
-		Provider         string  `json:"provider"`
-		PromptTokens     int     `json:"prompt_tokens"`
-		InputTokens      int     `json:"input_tokens"`
-		CompletionTokens int     `json:"completion_tokens"`
-		OutputTokens     int     `json:"output_tokens"`
-		TotalTokens      int     `json:"total_tokens"`
-		DurationMs       int     `json:"duration_ms"`
-		StatusCode       int     `json:"status_code"`
-		Cost             float64 `json:"cost"`
+func readBulkString(reader *bufio.Reader) (string, error) {
+	lenLine, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	lenLine = strings.TrimSpace(lenLine)
+	if !strings.HasPrefix(lenLine, "$") {
+		return "", fmt.Errorf("期望 Bulk String 长度指示符 '$', 收到: %s", lenLine)
+	}
+	strLen, err := strconv.Atoi(strings.TrimPrefix(lenLine, "$"))
+	if err != nil || strLen < 0 {
+		return "", nil
 	}
 
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return model.UsageRecord{}, false
+	buf := make([]byte, strLen)
+	if _, err := io.ReadFull(reader, buf); err != nil {
+		return "", err
 	}
-
-	id := raw.Id
-	if id == "" {
-		id = raw.RequestId
-	}
-	if id == "" {
-		return model.UsageRecord{}, false
-	}
-
-	ts := raw.Timestamp
-	if ts <= 0 {
-		ts = raw.CreatedAt
-	}
-	if ts <= 0 {
-		ts = time.Now().Unix()
-	}
-
-	prompt := raw.PromptTokens
-	if prompt <= 0 {
-		prompt = raw.InputTokens
-	}
-
-	completion := raw.CompletionTokens
-	if completion <= 0 {
-		completion = raw.OutputTokens
-	}
-
-	total := raw.TotalTokens
-	if total <= 0 {
-		total = prompt + completion
-	}
-
-	return model.UsageRecord{
-		Id:               id,
-		Timestamp:        ts,
-		TimeFormatted:    time.Unix(ts, 0).Format("2006-01-02 15:04:05"),
-		Model:            raw.Model,
-		Provider:         raw.Provider,
-		PromptTokens:     prompt,
-		CompletionTokens: completion,
-		TotalTokens:      total,
-		DurationMs:       raw.DurationMs,
-		StatusCode:       raw.StatusCode,
-		Cost:             raw.Cost,
-	}, true
+	_, _ = reader.Discard(2) // \r\n
+	return string(buf), nil
 }

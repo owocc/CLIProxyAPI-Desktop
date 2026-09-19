@@ -93,6 +93,19 @@ export interface CodexNativeStatus {
 }
 
 /**
+ * CollectorStatus represents the runtime status of the usage background collector.
+ */
+export interface CollectorStatus {
+    /**
+     * "waiting-core" | "collecting" | "error"
+     */
+    "state": string;
+    "message": string;
+    "lastCollectedAt"?: string | null;
+    "totalRecords": number;
+}
+
+/**
  * CoreInstallTask represents progress of an active install/update task.
  */
 export interface CoreInstallTask {
@@ -147,18 +160,6 @@ export interface CoreStatus {
     "installDir": string;
     "binaryPath": string | null;
     "message": string;
-}
-
-/**
- * DailyTrendPoint represents daily usage data for charts.
- */
-export interface DailyTrendPoint {
-    "date": string;
-    "requests": number;
-    "promptTokens": number;
-    "completionTokens": number;
-    "totalTokens": number;
-    "cost": number;
 }
 
 /**
@@ -225,6 +226,35 @@ export interface ManagementRequest {
 }
 
 /**
+ * ModelPrice defines pricing parameters per 1M tokens in USD.
+ */
+export interface ModelPrice {
+    "model": string;
+    "prompt": number;
+    "completion": number;
+    "cache": number;
+    "cacheRead": number;
+    "cacheCreation": number;
+    "promptConfigured": boolean;
+    "completionConfigured": boolean;
+    "cacheReadConfigured": boolean;
+    "cacheCreationConfigured": boolean;
+    "source": string;
+    "sourceModelId": string;
+    "updatedAtMs": number;
+}
+
+/**
+ * ModelPriceSyncResult describes the outcome of syncing model pricing.
+ */
+export interface ModelPriceSyncResult {
+    "imported": number;
+    "skipped": number;
+    "unmatched": string[] | null;
+    "usedBuiltin": boolean;
+}
+
+/**
  * OAuthBrowserOption represents a detected browser choice for opening OAuth URLs.
  */
 export interface OAuthBrowserOption {
@@ -275,31 +305,191 @@ export interface ReleaseInfo {
 }
 
 /**
- * UsageRecord represents an individual proxy request log entry with token metrics.
+ * UsageAnalysis holds distribution data across 4 dimensions.
+ */
+export interface UsageAnalysis {
+    "models": UsageCategory[] | null;
+    "providers": UsageCategory[] | null;
+    "sources": UsageCategory[] | null;
+    "apiKeys": UsageCategory[] | null;
+}
+
+/**
+ * UsageCategory represents an aggregated dimension bucket (model, provider, client, API key).
+ */
+export interface UsageCategory {
+    "key": string;
+    "label": string;
+    "requests": number;
+    "failures": number;
+    "tokens": number;
+}
+
+/**
+ * UsageEventPage represents a paginated list of usage records.
+ */
+export interface UsageEventPage {
+    "items": UsageRecord[] | null;
+    "total": number;
+    "page": number;
+    "pageSize": number;
+    "totalPages": number;
+}
+
+/**
+ * UsageOverview provides aggregate performance metrics and timeline series.
+ */
+export interface UsageOverview {
+    "totalRequests": number;
+    "successCount": number;
+    "failureCount": number;
+    "canceledCount": number;
+    "successRate": number;
+    "inputTokens": number;
+    "outputTokens": number;
+    "reasoningTokens": number;
+    "cacheReadTokens": number;
+    "cacheCreationTokens": number;
+    "totalTokens": number;
+    "rpm": number;
+    "tpm": number;
+    "tps": number;
+    "tpsSampleCount": number;
+    "averageLatencyMs": number;
+    "cacheHitRate": number;
+    "estimatedCost": number;
+    "pricedRequests": number;
+    "timeline": UsageTimelinePoint[] | null;
+}
+
+/**
+ * UsagePriceRow is a row in the pricing breakdown table.
+ */
+export interface UsagePriceRow {
+    "model": string;
+    "requests": number;
+    "inputTokens": number;
+    "outputTokens": number;
+    "cacheReadTokens": number;
+    "cacheCreationTokens": number;
+    "totalTokens": number;
+    "estimatedCost": number;
+    "price"?: ModelPrice | null;
+}
+
+/**
+ * UsagePricing holds model pricing summary and rows.
+ */
+export interface UsagePricing {
+    "rows": UsagePriceRow[] | null;
+    "totalCost": number;
+    "totalRequests": number;
+    "pricedRequests": number;
+    "savedPrices": number;
+}
+
+/**
+ * UsageQuery defines filtering parameters for usage queries.
+ */
+export interface UsageQuery {
+    "start"?: string | null;
+    "end"?: string | null;
+    "model"?: string | null;
+    "provider"?: string | null;
+    "source"?: string | null;
+    "apiKeyHash"?: string | null;
+    "failed"?: boolean | null;
+    "canceled"?: boolean | null;
+    "page"?: number | null;
+    "pageSize"?: number | null;
+}
+
+/**
+ * UsageRecord represents an individual proxy request log entry with detailed token and execution metrics.
  */
 export interface UsageRecord {
     "id": string;
-    "timestamp": number;
-    "timeFormatted": string;
-    "model": string;
+    "timestamp": string;
+    "latencyMs": number;
+    "ttftMs"?: number | null;
+    "source": string;
+    "sourceDisplay": string;
+    "authIndex": string;
+    "failed": boolean;
+    "canceled": boolean;
+    "failureStatus": number;
+    "failureBody": string;
     "provider": string;
-    "promptTokens": number;
-    "completionTokens": number;
+    "apiGroupKey": string;
+    "model": string;
+    "alias": string;
+    "clientIp"?: string | null;
+    "xForwardedFor"?: string | null;
+    "userAgent"?: string | null;
+    "reasoningEffort": string;
+    "serviceTier": string;
+    "responseServiceTier": string;
+    "executorType": string;
+    "endpoint": string;
+    "authType": string;
+    "apiKeyHash": string;
+    "apiKeyDisplay": string;
+    "apiKeyRemark": string;
+    "requestId": string;
+    "modelAlias"?: string | null;
+    "generate": boolean;
+    "cachedTokens": number;
+    "collectorSource": string;
+    "inputTokens": number;
+    "outputTokens": number;
+    "reasoningTokens": number;
+    "cacheReadTokens": number;
+    "cacheCreationTokens": number;
     "totalTokens": number;
-    "durationMs": number;
-    "statusCode": number;
     "cost": number;
 }
 
 /**
- * UsageSummary provides aggregated metrics across all or daily records.
+ * UsageRepairResult records the outcome of cache anomaly repairs.
  */
-export interface UsageSummary {
-    "totalRequests": number;
-    "todayRequests": number;
-    "totalPromptTokens": number;
-    "totalCompletionTokens": number;
-    "totalTokens": number;
-    "totalCost": number;
-    "todayCost": number;
+export interface UsageRepairResult {
+    "scanned": number;
+    "repaired": number;
+    "deleted": number;
+    "backupPath"?: string | null;
+}
+
+/**
+ * UsageStorageSettings contains SQLite disk metrics and size limit settings.
+ */
+export interface UsageStorageSettings {
+    "databasePath": string;
+    "databaseSizeBytes": number;
+    "walSizeBytes": number;
+    "maxDatabaseSizeMb": number;
+    "totalRecords": number;
+    "deletedRecords": number;
+}
+
+/**
+ * UsageTimelineModel holds token and request counts for a single model in a timeline bucket.
+ */
+export interface UsageTimelineModel {
+    "key": string;
+    "label": string;
+    "tokens": number;
+    "requests": number;
+}
+
+/**
+ * UsageTimelinePoint represents an aggregated timeline bucket (30-minute default).
+ */
+export interface UsageTimelinePoint {
+    "hour": string;
+    "requests": number;
+    "success": number;
+    "failure": number;
+    "canceled": number;
+    "tokens": number;
+    "models": UsageTimelineModel[] | null;
 }

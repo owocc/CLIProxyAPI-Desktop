@@ -13,28 +13,91 @@ import * as model$0 from "../model/models.js";
 import * as application$0 from "../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
 
 /**
- * GetDailyTrend returns daily aggregated data for the last N days.
+ * DeleteUsageModelPrice deletes a custom model price.
  */
-export function GetDailyTrend(days: number): $CancellablePromise<model$0.DailyTrendPoint[] | null> {
-    return $Call.ByID(3826069265, days);
+export function DeleteUsageModelPrice(model: string): $CancellablePromise<void> {
+    return $Call.ByID(1489047937, model);
 }
 
 /**
- * GetRecentRecords returns a paginated list of recent requests.
+ * GetUsageAnalysis returns four-dimensional distributions across models, providers, sources, and API keys.
  */
-export function GetRecentRecords(limit: number, offset: number): $CancellablePromise<model$0.UsageRecord[] | null> {
-    return $Call.ByID(798139856, limit, offset);
+export function GetUsageAnalysis(query: model$0.UsageQuery): $CancellablePromise<model$0.UsageAnalysis> {
+    return $Call.ByID(3222930018, query);
 }
 
 /**
- * GetUsageSummary returns the aggregated usage metrics.
+ * GetUsageCollectorStatus returns the real-time runtime status of the usage collector.
  */
-export function GetUsageSummary(): $CancellablePromise<model$0.UsageSummary> {
-    return $Call.ByID(2772784328);
+export function GetUsageCollectorStatus(): $CancellablePromise<model$0.CollectorStatus> {
+    return $Call.ByID(628951801);
+}
+
+/**
+ * GetUsageEvents returns a paginated list of usage records matching the filters.
+ */
+export function GetUsageEvents(query: model$0.UsageQuery): $CancellablePromise<model$0.UsageEventPage> {
+    return $Call.ByID(687918737, query);
+}
+
+/**
+ * GetUsageOverview returns the aggregated metrics and timeline points matching the query.
+ */
+export function GetUsageOverview(query: model$0.UsageQuery): $CancellablePromise<model$0.UsageOverview> {
+    return $Call.ByID(1861195635, query);
+}
+
+/**
+ * GetUsagePricing returns pricing breakdown and model coverage.
+ */
+export function GetUsagePricing(query: model$0.UsageQuery): $CancellablePromise<model$0.UsagePricing> {
+    return $Call.ByID(1092422710, query);
+}
+
+/**
+ * GetUsageStorageSettings returns database disk occupancy and max size limits.
+ */
+export function GetUsageStorageSettings(): $CancellablePromise<model$0.UsageStorageSettings> {
+    return $Call.ByID(3229201244);
+}
+
+/**
+ * RepairUsageCacheRecords performs historical Claude token discrepancy repair and cleans invalid records.
+ */
+export function RepairUsageCacheRecords(): $CancellablePromise<model$0.UsageRepairResult> {
+    return $Call.ByID(3270852789);
+}
+
+/**
+ * SaveUsageModelPrice saves or updates a custom model price.
+ */
+export function SaveUsageModelPrice(price: model$0.ModelPrice): $CancellablePromise<void> {
+    return $Call.ByID(2034790351, price);
+}
+
+/**
+ * SaveUsageStorageSettings saves maximum database size limit in MB.
+ */
+export function SaveUsageStorageSettings(maxDatabaseSizeMb: number): $CancellablePromise<model$0.UsageStorageSettings> {
+    return $Call.ByID(582590999, maxDatabaseSizeMb);
 }
 
 export function SetApp(app: application$0.App | null): $CancellablePromise<void> {
     return $Call.ByID(2594614384, app);
+}
+
+/**
+ * ShrinkUsageDatabase forcibly reduces database size to target MB.
+ */
+export function ShrinkUsageDatabase(targetDatabaseSizeMb: number): $CancellablePromise<model$0.UsageStorageSettings> {
+    return $Call.ByID(3495511860, targetDatabaseSizeMb);
+}
+
+/**
+ * SyncUsageModelPrices syncs model prices from remote GitHub or builtin catalog.
+ */
+export function SyncUsageModelPrices(query: string): $CancellablePromise<model$0.ModelPriceSyncResult> {
+    return $Call.ByID(4211378930, query);
 }
 
 /**
@@ -45,7 +108,7 @@ export function Teardown(): $CancellablePromise<void> {
 }
 
 /**
- * TriggerSync updates collector configuration and syncs records.
+ * TriggerSync updates collector configuration and syncs records immediately.
  */
 export function TriggerSync(): $CancellablePromise<void> {
     return $Call.ByID(1372206482);
