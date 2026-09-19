@@ -40,6 +40,11 @@ func NewCoreService() *CoreService {
 
 func (cs *CoreService) SetApp(app *application.App) {
 	cs.app = app
+	// Perform immediate detection in background and broadcast status to tray and frontend
+	go func() {
+		status := cs.GetStatus()
+		cs.emitEvent("core-status-changed", status)
+	}()
 }
 
 func (cs *CoreService) emitEvent(name string, data any) {

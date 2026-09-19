@@ -3,8 +3,11 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -23,6 +26,42 @@ func checkProcessRunning(process *os.Process) bool {
 	}
 	err := process.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+// findPidByPort searches for the PID of the process listening on the specified TCP port on Unix.
+func findPidByPort(port int) int {
+	if port <= 0 {
+		return 0
+	}
+	cmd := exec.Command("lsof", "-t", "-i", fmt.Sprintf(":%d", port), "-sTCP:LISTEN")
+	out, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	if len(lines) > 0 {
+		if pid, err := strconv.Atoi(strings.TrimSpace(lines[0])); err == nil && pid > 0 {
+			return pid
+		}
+	}
+	return 0
+}
+
+// killPid terminates a process by PID on Unix.
+func killPid(pid int) error {
+	if pid <= 0 {
+		return nil
+	}
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	_ = p.Signal(syscall.SIGTERM)
+	time.Sleep(300 * time.Millisecond)
+	if isProcessAlive(pid) {
+		_ = p.Signal(syscall.SIGKILL)
+	}
+	return nil
 }
 
 // killProcessGroup sends SIGTERM then SIGKILL to the entire process group.

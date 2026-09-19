@@ -22,6 +22,7 @@ interface CoreRuntimeContextType {
   installTask: CoreInstallTask | null
   port: number
   loading: boolean
+  initializing: boolean
   error: string | null
   refreshStatus: () => Promise<void>
   start: () => Promise<void>
@@ -39,18 +40,30 @@ export function CoreRuntimeProvider({ children }: { children: React.ReactNode })
   const [installTask, setInstallTask] = useState<CoreInstallTask | null>(null)
   const [port, setPort] = useState<number>(8317)
   const [loading, setLoading] = useState<boolean>(false)
+  const [initializing, setInitializing] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
   const refreshStatus = useCallback(async () => {
     try {
-      const s = await GetStatus()
-      setStatus(s)
-      const p = await GetCorePort()
-      setPort(p)
+      const [s, p] = await Promise.all([
+        GetStatus().catch((err) => {
+          console.error("Failed to get core status:", err)
+          return null
+        }),
+        GetCorePort().catch(() => 8317),
+      ])
+      if (s) {
+        setStatus(s)
+      }
+      if (p) {
+        setPort(p)
+      }
       setError(null)
     } catch (err: any) {
-      console.error("Failed to get core status:", err)
+      console.error("Failed to refresh core status:", err)
       setError(err?.message || String(err))
+    } finally {
+      setInitializing(false)
     }
   }, [])
 
@@ -61,6 +74,7 @@ export function CoreRuntimeProvider({ children }: { children: React.ReactNode })
     const unbindStatus = Events.On("core-status-changed", (ev: any) => {
       if (ev?.data) {
         setStatus(ev.data)
+        setInitializing(false)
       }
     })
 
@@ -162,6 +176,7 @@ export function CoreRuntimeProvider({ children }: { children: React.ReactNode })
         installTask,
         port,
         loading,
+        initializing,
         error,
         refreshStatus,
         start,

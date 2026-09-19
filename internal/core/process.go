@@ -104,10 +104,26 @@ func (pm *ProcessManager) getStatusLocked(port int) model.CoreStatus {
 		}
 	}
 
+	// Check if management port is open
+	portOpen := false
+	if port > 0 {
+		portOpen = IsManagementPortOpen(port)
+	}
+
+	// If no managed child process is running, but the port is open and responding,
+	// detect it as an already-running core service (e.g. background/daemon or started prior to GUI)
+	if !running && portOpen {
+		running = true
+		managed = false
+		if pid := findPidByPort(port); pid > 0 {
+			processId = &pid
+		}
+	}
+
 	// Ready is strictly running && port is open
-	ready := false
-	if running && port > 0 {
-		ready = IsManagementPortOpen(port)
+	ready := running && portOpen
+	if running {
+		installed = true
 	}
 
 	var binPtr *string
@@ -118,14 +134,18 @@ func (pm *ProcessManager) getStatusLocked(port int) model.CoreStatus {
 	var message string
 	if pm.starting {
 		message = "CPA 内核正在启动"
-	} else if !installed {
-		message = "未安装 CPA 内核，请先安装最新版"
 	} else if running {
 		if ready {
-			message = "CPA 内核正在运行"
+			if managed {
+				message = "CPA 内核正在运行"
+			} else {
+				message = "CPA 代理服务正在运行（已检测到现有进程）"
+			}
 		} else {
 			message = "CPA 内核已启动，正在等待服务就绪"
 		}
+	} else if !installed {
+		message = "未安装 CPA 内核，请先安装最新版"
 	} else {
 		message = "CPA 内核已安装，当前未运行"
 	}
@@ -263,12 +283,17 @@ func (pm *ProcessManager) Stop(port int) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if pm.childCmd == nil || pm.childCmd.Process == nil {
-		return nil
+	var err error
+	if pm.childCmd != nil && pm.childCmd.Process != nil {
+		err = killProcessGroup(pm.childCmd)
+		pm.childCmd = nil
+	} else if port > 0 {
+		// Terminate unmanaged or detached process listening on the port
+		if pid := findPidByPort(port); pid > 0 {
+			err = killPid(pid)
+		}
 	}
 
-	err := killProcessGroup(pm.childCmd)
-	pm.childCmd = nil
 	pm.starting = false
 	pm.notifyStatus(port)
 	return err
@@ -277,8 +302,13 @@ func (pm *ProcessManager) Stop(port int) error {
 // Restart stops and restarts the core process.
 func (pm *ProcessManager) Restart(port int) error {
 	_ = pm.Stop(port)
-	// Give the OS 300ms to release the port socket
-	time.Sleep(300 * time.Millisecond)
+	// Wait up to 3s for the OS to release the port socket
+	for i := 0; i < 15; i++ {
+		time.Sleep(200 * time.Millisecond)
+		if !IsManagementPortOpen(port) {
+			break
+		}
+	}
 	return pm.Start(port)
 }
 

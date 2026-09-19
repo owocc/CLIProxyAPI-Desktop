@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
   Lock,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "../components/ui/button"
 import {
@@ -62,7 +63,7 @@ interface AppShellProps {
 }
 
 function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
-  const { status, port, loading, start } = useCoreRuntime()
+  const { status, port, loading, initializing, start } = useCoreRuntime()
   const { theme, resolvedTheme, setTheme } = useTheme()
   const { isMac, isWindows } = usePlatform()
   const { state } = useSidebar()
@@ -98,7 +99,7 @@ function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
                 {navItems.map((item) => {
                   const Icon = item.icon
                   const isActive = activePage === item.id
-                  const isItemDisabled = !item.alwaysAvailable && !isReady
+                  const isItemDisabled = !item.alwaysAvailable && !isReady && !initializing
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -197,11 +198,21 @@ function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
         <main
           className={cn(
             "h-full w-full overflow-y-auto px-6 pb-6 bg-background/50",
-            isLocked ? "pt-[52px] flex items-center justify-center" : "pt-[60px]"
+            (isLocked || (initializing && !activeNavItem?.alwaysAvailable)) ? "pt-[52px] flex items-center justify-center" : "pt-[60px]"
           )}
         >
-          {isLocked ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+          {initializing && !activeNavItem?.alwaysAvailable ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-200">
+              <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4 text-muted-foreground">
+                <RefreshCw className="size-6 animate-spin text-primary" />
+              </div>
+              <h2 className="text-base font-semibold mb-1">正在检测服务状态</h2>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                正在检测代理内核运行状态与端口...
+              </p>
+            </div>
+          ) : isLocked ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-200">
               <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4 text-muted-foreground">
                 <AlertCircle className="size-6" />
               </div>

@@ -18,6 +18,7 @@ import {
   Activity,
   ArrowRight,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react"
 
 interface HomePageProps {
@@ -25,7 +26,7 @@ interface HomePageProps {
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
-  const { status, port, loading, start, stop, restart, error } = useCoreRuntime()
+  const { status, port, loading, initializing, start, stop, restart, error } = useCoreRuntime()
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const isInstalled = status?.installed ?? false
@@ -53,7 +54,17 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {!isInstalled ? (
+          {initializing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="gap-2 shadow-sm text-xs"
+            >
+              <RefreshCw className="size-3.5 animate-spin text-primary" />
+              检测服务中...
+            </Button>
+          ) : !isInstalled ? (
             <Button
               onClick={() => onNavigate("versions")}
               className="gap-2 shadow-sm"
@@ -112,7 +123,12 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Activity className="size-5 text-primary" />
                 <span>内核运行状态</span>
               </CardTitle>
-              {isReady ? (
+              {initializing ? (
+                <Badge variant="outline" className="px-2.5 py-1 text-muted-foreground animate-pulse gap-1.5">
+                  <RefreshCw className="size-3 animate-spin text-primary" />
+                  正在检测服务...
+                </Badge>
+              ) : isReady ? (
                 <Badge variant="success" className="px-2.5 py-1">
                   服务正常就绪
                 </Badge>
@@ -130,7 +146,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </Badge>
               )}
             </div>
-            <CardDescription>{status?.message}</CardDescription>
+            <CardDescription>{initializing ? "正在探测代理内核运行状态与监听端口..." : status?.message}</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
