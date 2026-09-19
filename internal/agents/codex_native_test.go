@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	toml "github.com/pelletier/go-toml/v2"
@@ -64,14 +65,17 @@ func TestCodexNativeOAuthLifecycle(t *testing.T) {
 		t.Fatalf("RestoreCodexOfficialConfig failed: %v", err)
 	}
 
-	// Check record file permissions: must be 0600
 	recFi, err := os.Stat(recordPath)
 	if err != nil {
 		t.Fatalf("expected record file to exist: %v", err)
 	}
-	perm := recFi.Mode().Perm()
-	if perm != 0600 {
-		t.Errorf("expected cpa-native-oauth.json to have 0600 permissions, got %04o", perm)
+
+	// Check record file permissions: must be 0600 on POSIX
+	if runtime.GOOS != "windows" {
+		perm := recFi.Mode().Perm()
+		if perm != 0600 {
+			t.Errorf("expected cpa-native-oauth.json to have 0600 permissions, got %04o", perm)
+		}
 	}
 
 	// Read record content
