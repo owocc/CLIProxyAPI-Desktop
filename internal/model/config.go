@@ -43,6 +43,7 @@ type CoreSettings struct {
 type GuiSettings struct {
 	Locale                string   `json:"locale" toml:"locale"`
 	Theme                 string   `json:"theme" toml:"theme"`
+	SidebarStyle          string   `json:"sidebarStyle" toml:"sidebar-style"` // "blur" | "color"
 	RunOnStartup          bool     `json:"runOnStartup" toml:"run-on-startup"`
 	CloseBehavior         string   `json:"closeBehavior" toml:"close-behavior"`
 	LightweightMode       bool     `json:"lightweightMode" toml:"lightweight-mode"`

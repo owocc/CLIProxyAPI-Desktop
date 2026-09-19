@@ -32,6 +32,39 @@ func (wm *WindowManager) SetInitialWindow(win *application.WebviewWindow) {
 
 	wm.mainWindow = win
 	wm.bindWindowEvents(win)
+
+	currentTheme := "system"
+	if wm.configService != nil {
+		if cfg, err := wm.configService.GetGuiConfig(); err == nil && cfg.Theme != "" {
+			currentTheme = cfg.Theme
+		}
+	}
+	if currentTheme == "system" || currentTheme == "" {
+		if wm.app != nil && wm.app.Env.IsDarkMode() {
+			currentTheme = "dark"
+		} else {
+			currentTheme = "light"
+		}
+	}
+	applyNativeWindowBackdrop(win, currentTheme)
+}
+
+// SetWindowTheme applies theme appearance to the native window (macOS NSVisualEffectView & NSAppearance).
+func (wm *WindowManager) SetWindowTheme(theme string) {
+	wm.mu.Lock()
+	defer wm.mu.Unlock()
+
+	if theme == "system" || theme == "" {
+		if wm.app != nil && wm.app.Env.IsDarkMode() {
+			theme = "dark"
+		} else {
+			theme = "light"
+		}
+	}
+
+	if wm.mainWindow != nil {
+		applyNativeWindowBackdrop(wm.mainWindow, theme)
+	}
 }
 
 // ShowWindow shows and focuses the main window, recreating it if it was destroyed.
@@ -97,12 +130,27 @@ func (wm *WindowManager) createMainWindowLocked() {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(15, 17, 23),
+		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		URL:              "/",
 	})
 
 	wm.mainWindow = win
 	wm.bindWindowEvents(win)
+
+	currentTheme := "system"
+	if wm.configService != nil {
+		if cfg, err := wm.configService.GetGuiConfig(); err == nil && cfg.Theme != "" {
+			currentTheme = cfg.Theme
+		}
+	}
+	if currentTheme == "system" || currentTheme == "" {
+		if wm.app != nil && wm.app.Env.IsDarkMode() {
+			currentTheme = "dark"
+		} else {
+			currentTheme = "light"
+		}
+	}
+	applyNativeWindowBackdrop(win, currentTheme)
 }
 
 func (wm *WindowManager) bindWindowEvents(win *application.WebviewWindow) {

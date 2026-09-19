@@ -77,18 +77,32 @@ function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
 
   return (
     <>
+      {/* 始终绝对固定在左侧的单个侧边栏开关按钮（Ghostty 风格，零位移） */}
+      <div
+        className={cn(
+          "fixed top-0 z-30 h-[52px] flex items-center pointer-events-none select-none",
+          isMac ? "left-[96px]" : "left-3"
+        )}
+      >
+        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties} className="pointer-events-auto">
+          <SidebarTrigger
+            title={isCollapsed ? "展开侧边栏 (Cmd+B / Ctrl+B)" : "收起侧边栏 (Cmd+B / Ctrl+B)"}
+            className="size-7 rounded-[6px] text-muted-foreground/80 hover:text-foreground hover:bg-foreground/10 active:bg-foreground/15 active:scale-95 transition-all"
+          />
+        </div>
+      </div>
+
       {/* Shadcn Sidebar with Multi-platform Safe Area Adaptation (fully hidden when collapsed) */}
       <Sidebar collapsible="offcanvas" variant="sidebar">
-        {/* Sidebar Header: App title hidden; macOS traffic lights safe zone, borderless */}
+        {/* 顶部安全区与拖拽手柄：高度与主内容区头部一致 (52px)，macOS 下避开交通灯 */}
         <SidebarHeader
           className={cn(
-            "h-[52px] justify-center transition-all",
+            "h-[52px] shrink-0 justify-center select-none",
             isMac ? "pl-20 pr-3" : "px-3"
           )}
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          {/* Draggable window top safe area with no app title text */}
-          <div className="h-full w-full flex items-center" />
+          <div className="h-full w-full" />
         </SidebarHeader>
 
         {/* Navigation items */}
@@ -150,16 +164,16 @@ function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
 
       {/* Main Content Area */}
       <SidebarInset className="relative h-screen w-full overflow-hidden">
-        {/* Top Floating Apple-style Header with Gradient Mask and Backdrop Blur */}
+        {/* 主内容区专属浮动头部：毛玻璃渐变蒙版严格限制在主内容区内部，绝不污染侧边栏分割线 */}
         <header
           className={cn(
-            "absolute top-0 left-0 right-0 z-20 h-[52px] flex items-center justify-between select-none transition-all duration-200 pointer-events-auto",
-            isMac && isCollapsed ? "pl-24 pr-4" : "px-4",
+            "absolute top-0 left-0 right-0 z-20 h-[52px] flex items-center justify-between select-none pointer-events-auto transition-all duration-200",
+            isCollapsed ? (isMac ? "pl-[136px] pr-4" : "pl-12 pr-4") : "pl-4 pr-4",
             isWindows && "pr-5"
           )}
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          {/* Frosted glass backdrop with top-to-transparent mask (no bottom border line) */}
+          {/* 苹果风格毛玻璃背景与渐变遮罩：仅在主内容区顶部生效 */}
           <div
             className="absolute inset-0 -z-10 bg-background/80 backdrop-blur-sm pointer-events-none transition-all"
             style={{
@@ -168,20 +182,14 @@ function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
             }}
           />
 
-          {/* Left section: Sidebar toggle */}
-          <div
-            className="flex items-center"
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-          >
-            <SidebarTrigger />
-          </div>
+          {/* 中间窗口拖拽区域 */}
+          <div className="flex-1 h-full" />
 
-          {/* Right section: App Controls (Theme toggle) */}
+          {/* 右侧全局控件（主题切换） */}
           <div
             className="flex items-center gap-2"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
-            {/* Quick theme toggle */}
             <Button
               variant="ghost"
               size="sm"

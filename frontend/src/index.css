@@ -116,12 +116,29 @@
     --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Sidebar style: 模糊 (blur) 叠加与背景色完全一致的 50% 半透明色彩，兼顾透出窗口毛玻璃质感与保证文字高对比度清晰 */
+[data-sidebar-style="blur"] {
+    --sidebar: oklch(0.145 0 0 / 50%);
+}
+
+.dark[data-sidebar-style="blur"],
+[data-theme="dark"][data-sidebar-style="blur"] {
+    --sidebar: oklch(0.145 0 0 / 50%);
+    --sidebar-accent: oklch(1 0 0 / 12%);
+}
+
+.light[data-sidebar-style="blur"],
+[data-theme="light"][data-sidebar-style="blur"] {
+    --sidebar: oklch(0.99 0 0 / 50%);
+    --sidebar-accent: oklch(0 0 0 / 8%);
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   html, body {
-    @apply bg-background text-foreground antialiased font-sans;
+    @apply bg-transparent text-foreground antialiased font-sans;
     margin: 0;
     padding: 0;
     width: 100%;

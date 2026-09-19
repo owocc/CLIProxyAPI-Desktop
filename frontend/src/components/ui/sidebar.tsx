@@ -126,7 +126,7 @@ export function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            "group/sidebar-wrapper flex h-screen w-screen overflow-hidden bg-sidebar",
+            "group/sidebar-wrapper flex h-screen w-screen overflow-hidden bg-transparent",
             className
           )}
           {...props}
@@ -343,7 +343,7 @@ export function SidebarMenuButton({
       className={cn(
         sidebarMenuButtonVariants({ variant, size }),
         isActive
-          ? "bg-primary text-primary-foreground shadow-xs font-semibold hover:bg-primary/90 hover:text-primary-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         className
       )}

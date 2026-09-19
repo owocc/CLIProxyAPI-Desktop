@@ -41,6 +41,13 @@ export function HideWindow(): $CancellablePromise<void> {
 }
 
 /**
+ * IsDarkMode returns whether the operating system is currently in dark mode.
+ */
+export function IsDarkMode(): $CancellablePromise<boolean> {
+    return $Call.ByID(942906579);
+}
+
+/**
  * IsLightweightModeEnabled checks if lightweight mode is currently enabled in settings.
  */
 export function IsLightweightModeEnabled(): $CancellablePromise<boolean> {
@@ -60,6 +67,13 @@ export function SetApp(app: application$0.App | null): $CancellablePromise<void>
 
 export function SetWindowManager(wm: $models.WindowManager | null): $CancellablePromise<void> {
     return $Call.ByID(940909103, wm);
+}
+
+/**
+ * SetWindowTheme updates the native window appearance and vibrant backdrop (e.g. "dark", "light", "system").
+ */
+export function SetWindowTheme(theme: string): $CancellablePromise<void> {
+    return $Call.ByID(1707395829, theme);
 }
 
 /**

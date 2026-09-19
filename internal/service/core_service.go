@@ -1,9 +1,13 @@
 package service
 
 import (
+	"crypto/tls"
+	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"gopkg.in/yaml.v3"
@@ -87,6 +91,69 @@ func (cs *CoreService) GetCorePort() int {
 func (cs *CoreService) GetStatus() model.CoreStatus {
 	port := cs.GetCorePort()
 	return cs.pm.GetStatus(port)
+}
+
+// CheckHealth performs an active end-to-end HTTP health probe against the proxy core.
+func (cs *CoreService) CheckHealth() model.CoreHealthCheck {
+	port := cs.GetCorePort()
+	status := cs.pm.GetStatus(port)
+	now := time.Now().Format("15:04:05")
+
+	if !status.Running || !status.Ready {
+		msg := "代理内核未运行"
+		if !status.Installed {
+			msg = "代理内核尚未安装"
+		} else if status.Starting {
+			msg = "代理内核正在启动中..."
+		}
+		return model.CoreHealthCheck{
+			Healthy:   false,
+			Status:    "offline",
+			Port:      port,
+			ProcessId: status.ProcessId,
+			Message:   msg,
+			CheckedAt: now,
+		}
+	}
+
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{
+			Proxy: nil, // bypass proxy
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	url := fmt.Sprintf("http://127.0.0.1:%d/", port)
+	start := time.Now()
+	resp, err := client.Get(url)
+	latency := time.Since(start).Milliseconds()
+
+	if err != nil {
+		return model.CoreHealthCheck{
+			Healthy:    false,
+			Status:     "unresponsive",
+			LatencyMs:  latency,
+			Port:       port,
+			ProcessId:  status.ProcessId,
+			Message:    fmt.Sprintf("端口已开放但服务未响应: %v", err),
+			CheckedAt:  now,
+		}
+	}
+	defer resp.Body.Close()
+
+	return model.CoreHealthCheck{
+		Healthy:    true,
+		Status:     "healthy",
+		StatusCode: resp.StatusCode,
+		LatencyMs:  latency,
+		Port:       port,
+		ProcessId:  status.ProcessId,
+		Message:    fmt.Sprintf("服务响应正常，延迟 %dms", latency),
+		CheckedAt:  now,
+	}
 }
 
 // StartCore starts the core process.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Events } from "@wailsio/runtime"
-import { useTheme, type Theme } from "../context/ThemeContext"
+import { useTheme, type Theme, type SidebarStyle } from "../context/ThemeContext"
 import { useCoreRuntime } from "../context/CoreRuntimeContext"
 import {
   Card,
@@ -34,10 +34,12 @@ import {
   Minimize2,
   XCircle,
   Zap,
+  Droplets,
+  Palette,
 } from "lucide-react"
 
 export function AppSettingsPage() {
-  const { theme, resolvedTheme, setTheme } = useTheme()
+  const { theme, resolvedTheme, sidebarStyle, setTheme, setSidebarStyle } = useTheme()
   const { status, port } = useCoreRuntime()
 
   const [config, setConfig] = useState<GuiConfigFile | null>(null)
@@ -97,8 +99,14 @@ export function AppSettingsPage() {
   const handleThemeChange = async (newTheme: Theme) => {
     await setTheme(newTheme)
     if (config) {
-      const updated = { ...config, theme: newTheme }
-      await handleUpdateConfig(updated)
+      setConfig({ ...config, theme: newTheme })
+    }
+  }
+
+  const handleSidebarStyleChange = async (newStyle: SidebarStyle) => {
+    await setSidebarStyle(newStyle)
+    if (config) {
+      setConfig({ ...config, sidebarStyle: newStyle })
     }
   }
 
@@ -272,6 +280,104 @@ export function AppSettingsPage() {
                 <div className="flex-1 flex flex-col gap-1">
                   <div className="h-2 w-3/4 rounded bg-neutral-300" />
                   <div className="h-full rounded border border-neutral-200 bg-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 侧边栏外观风格：模糊 | 色彩 */}
+          <div className="pt-5 border-t border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="font-semibold text-sm">侧边栏样式</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  自定义侧边栏视觉质感：窗口毛玻璃模糊穿透或经典主题色彩
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs font-normal">
+                当前风格: {sidebarStyle === "blur" ? "窗口模糊" : "纯色色彩"}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 模糊 (blur) */}
+              <div
+                onClick={() => handleSidebarStyleChange("blur")}
+                className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all hover:border-primary/60 flex flex-col justify-between gap-3 ${
+                  sidebarStyle === "blur"
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border/60 bg-card/40 hover:bg-muted/30"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-sky-500/10 text-sky-500">
+                      <Droplets className="size-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm flex items-center gap-1.5">
+                        模糊 (窗口毛玻璃)
+                        <Badge variant="outline" className="text-[10px] text-sky-500 border-sky-500/30 font-normal">
+                          推荐
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        叠加 50% 半透明色彩，透出窗口毛玻璃且保证文本清晰
+                      </div>
+                    </div>
+                  </div>
+                  {sidebarStyle === "blur" && (
+                    <CheckCircle2 className="size-4 text-primary" />
+                  )}
+                </div>
+
+                {/* Mini mockup preview - blur */}
+                <div className="h-16 w-full rounded-lg border border-border/50 bg-background/30 p-2 flex gap-1.5 overflow-hidden backdrop-blur-xs">
+                  <div className="w-1/4 h-full rounded border border-dashed border-sky-500/30 bg-sky-500/10 flex items-center justify-center">
+                    <span className="text-[9px] text-sky-400 font-mono">blur</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="h-2 w-3/4 rounded bg-muted/60" />
+                    <div className="h-full rounded border border-border/40 bg-card/80" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 色彩 (color) */}
+              <div
+                onClick={() => handleSidebarStyleChange("color")}
+                className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all hover:border-primary/60 flex flex-col justify-between gap-3 ${
+                  sidebarStyle === "color"
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border/60 bg-card/40 hover:bg-muted/30"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
+                      <Palette className="size-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">色彩 (纯色背景)</div>
+                      <div className="text-xs text-muted-foreground">
+                        使用与应用主题一致的实色背景
+                      </div>
+                    </div>
+                  </div>
+                  {sidebarStyle === "color" && (
+                    <CheckCircle2 className="size-4 text-primary" />
+                  )}
+                </div>
+
+                {/* Mini mockup preview - color */}
+                <div className="h-16 w-full rounded-lg border border-border/50 bg-background/50 p-2 flex gap-1.5 overflow-hidden">
+                  <div className="w-1/4 h-full rounded bg-muted/90 flex items-center justify-center">
+                    <span className="text-[9px] text-muted-foreground font-mono">solid</span>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="h-2 w-3/4 rounded bg-muted/60" />
+                    <div className="h-full rounded border border-border/40 bg-card/80" />
+                  </div>
                 </div>
               </div>
             </div>

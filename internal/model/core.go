@@ -48,3 +48,15 @@ type CoreMeta struct {
 	AssetName       string `json:"asset_name"`
 	InstalledAtUnix int64  `json:"installed_at_unix"`
 }
+
+// CoreHealthCheck represents the result of a deep health check probe on the core service.
+type CoreHealthCheck struct {
+	Healthy    bool   `json:"healthy"`
+	Status     string `json:"status"` // "healthy" | "offline" | "unresponsive"
+	StatusCode int    `json:"statusCode"`
+	LatencyMs  int64  `json:"latencyMs"`
+	Port       int    `json:"port"`
+	ProcessId  *int   `json:"processId"`
+	Message    string `json:"message"`
+	CheckedAt  string `json:"checkedAt"`
+}

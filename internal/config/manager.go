@@ -93,6 +93,7 @@ func DefaultGuiConfig() model.GuiConfigFile {
 		GuiSettings: model.GuiSettings{
 			Locale:          "zh-CN",
 			Theme:           "system",
+			SidebarStyle:    "blur",
 			RunOnStartup:    false,
 			CloseBehavior:   "minimize-to-tray",
 			LightweightMode: false,
@@ -142,6 +143,10 @@ func (cm *ConfigManager) LoadGuiConfig() (model.GuiConfigFile, error) {
 	var cfg model.GuiConfigFile
 	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return DefaultGuiConfig(), fmt.Errorf("解析 config.toml 失败: %w", err)
+	}
+
+	if cfg.SidebarStyle == "" {
+		cfg.SidebarStyle = "blur"
 	}
 
 	// Auto-rotate missing or invalid hashed management secret key

@@ -20,6 +20,13 @@ export function CancelCoreInstall(): $CancellablePromise<void> {
 }
 
 /**
+ * CheckHealth performs an active end-to-end HTTP health probe against the proxy core.
+ */
+export function CheckHealth(): $CancellablePromise<model$0.CoreHealthCheck> {
+    return $Call.ByID(9764129);
+}
+
+/**
  * CheckLatestCore checks the latest release from the specified source.
  */
 export function CheckLatestCore(source: string): $CancellablePromise<model$0.ReleaseInfo | null> {

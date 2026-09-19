@@ -106,6 +106,24 @@ export interface CollectorStatus {
 }
 
 /**
+ * CoreHealthCheck represents the result of a deep health check probe on the core service.
+ */
+export interface CoreHealthCheck {
+    "healthy": boolean;
+
+    /**
+     * "healthy" | "offline" | "unresponsive"
+     */
+    "status": string;
+    "statusCode": number;
+    "latencyMs": number;
+    "port": number;
+    "processId": number | null;
+    "message": string;
+    "checkedAt": string;
+}
+
+/**
  * CoreInstallTask represents progress of an active install/update task.
  */
 export interface CoreInstallTask {
@@ -168,6 +186,11 @@ export interface CoreStatus {
 export interface GuiConfigFile {
     "locale": string;
     "theme": string;
+
+    /**
+     * "blur" | "color"
+     */
+    "sidebarStyle": string;
     "runOnStartup": boolean;
     "closeBehavior": string;
     "lightweightMode": boolean;
@@ -206,6 +229,11 @@ export interface GuiConfigFile {
 export interface GuiSettings {
     "locale": string;
     "theme": string;
+
+    /**
+     * "blur" | "color"
+     */
+    "sidebarStyle": string;
     "runOnStartup": boolean;
     "closeBehavior": string;
     "lightweightMode": boolean;

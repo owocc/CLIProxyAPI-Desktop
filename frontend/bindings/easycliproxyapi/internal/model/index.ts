@@ -10,6 +10,7 @@ export type {
     CodexConfig,
     CodexNativeStatus,
     CollectorStatus,
+    CoreHealthCheck,
     CoreInstallTask,
     CoreSettings,
     CoreStatus,

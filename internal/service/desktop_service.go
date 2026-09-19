@@ -73,6 +73,29 @@ func (ds *DesktopService) QuitApp() error {
 	return nil
 }
 
+// SetWindowTheme updates the native window appearance and vibrant backdrop (e.g. "dark", "light", "system").
+func (ds *DesktopService) SetWindowTheme(theme string) error {
+	if ds.wm != nil {
+		if theme == "system" || theme == "" {
+			if ds.app != nil && ds.app.Env.IsDarkMode() {
+				theme = "dark"
+			} else {
+				theme = "light"
+			}
+		}
+		ds.wm.SetWindowTheme(theme)
+	}
+	return nil
+}
+
+// IsDarkMode returns whether the operating system is currently in dark mode.
+func (ds *DesktopService) IsDarkMode() (bool, error) {
+	if ds.app != nil {
+		return ds.app.Env.IsDarkMode(), nil
+	}
+	return false, nil
+}
+
 // GetPlatform returns the current operating system (e.g. "darwin", "windows", "linux").
 func (ds *DesktopService) GetPlatform() (string, error) {
 	return runtime.GOOS, nil

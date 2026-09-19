@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"easycliproxyapi/internal/service"
 	"easycliproxyapi/internal/tray"
@@ -84,10 +85,29 @@ func main() {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(15, 17, 23),
+		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		URL:              "/",
 	})
 	windowManager.SetInitialWindow(win)
+
+	// Listen for system theme changes from the OS (macOS AppleInterfaceThemeChangedNotification / Linux)
+	app.Event.OnApplicationEvent(events.Common.ThemeChanged, func(e *application.ApplicationEvent) {
+		isDark := app.Env.IsDarkMode()
+		log.Printf("[SystemTheme] ThemeChanged event received: isDarkMode=%v", isDark)
+
+		// 1. If currently configured to follow system theme, update native window backdrop immediately
+		cfg, err := configService.GetGuiConfig()
+		if err == nil && (cfg.Theme == "system" || cfg.Theme == "") {
+			resolved := "light"
+			if isDark {
+				resolved = "dark"
+			}
+			windowManager.SetWindowTheme(resolved)
+		}
+
+		// 2. Broadcast system-theme-changed event to frontend
+		app.Event.Emit("system-theme-changed", isDark)
+	})
 
 	// Setup system tray / menu bar
 	trayManager := tray.NewTrayManager(app, coreService, configService, windowManager)
