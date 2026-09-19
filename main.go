@@ -5,29 +5,23 @@ import (
 	"log"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+
+	"easycliproxyapi/internal/service"
 )
 
 // Wails uses Go's `embed` package to embed the frontend files into the binary.
-// Any files in the frontend/dist folder will be embedded into the binary and
-// made available to the frontend.
-// See https://pkg.go.dev/embed for more information.
-
+//
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// main function serves as the application's entry point. It initializes the application, creates a window,
-// and runs the application.
 func main() {
+	coreService := service.NewCoreService()
 
-	// Create a new Wails application by providing the necessary options.
-	// Variables 'Name' and 'Description' are for application metadata.
-	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
-	// 'Bind' is a list of Go struct instances. The frontend has access to the methods of these instances.
-	// 'Mac' options tailor the application when running an macOS.
 	app := application.New(application.Options{
 		Name:        "EasyCLIProxyAPI",
 		Description: "EasyCLIProxyAPI",
 		Services: []application.Service{
+			application.NewService(coreService),
 			application.NewService(&GreetService{}),
 		},
 		Assets: application.AssetOptions{
@@ -38,29 +32,28 @@ func main() {
 		},
 	})
 
-	// Create a new window with the necessary options.
-	// 'Title' is the title of the window.
-	// 'Mac' options tailor the window when running on macOS.
-	// 'BackgroundColour' is the background colour of the window.
-	// 'URL' is the URL that will be loaded into the webview.
+	coreService.SetApp(app)
+
+	// Clean up child processes on app exit
+	app.OnShutdown(func() {
+		coreService.Teardown()
+	})
+
+	// Create main window
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title: "EasyCLIProxyAPI",
-		// Window sized to the golden ratio (1000 / 618 ≈ 1.618).
-		Width:  1000,
-		Height: 618,
+		Title:  "EasyCLIProxyAPI",
+		Width:  1100,
+		Height: 720,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(6, 7, 15),
+		BackgroundColour: application.NewRGB(15, 17, 23),
 		URL:              "/",
 	})
 
-	// Run the application. This blocks until the application has been exited.
 	err := app.Run()
-
-	// If an error occurred while running the application, log it and exit.
 	if err != nil {
 		log.Fatal(err)
 	}
