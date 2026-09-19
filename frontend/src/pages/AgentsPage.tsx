@@ -44,9 +44,18 @@ import type {
 } from "../../bindings/easycliproxyapi/internal/model/models"
 
 import { Button } from "../components/ui/button"
+import { Badge } from "../components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Switch } from "../components/ui/switch"
 import { Input } from "../components/ui/input"
+import { Skeleton } from "../components/ui/skeleton"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select"
 
 const clientIcons: Record<string, string> = {
   "claude-code": claudeIcon,
@@ -78,6 +87,223 @@ const DEFAULT_MODELS = [
   "deepseek-v3",
 ]
 
+const DEFAULT_AGENTS: AgentInfo[] = [
+  {
+    id: "claude-code",
+    name: "Claude Code",
+    executable: "claude",
+    format: "JSON",
+    description: "Anthropic 官方终端智能体",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: [
+      "claude-3-7-sonnet-20250219",
+      "claude-3-5-sonnet-20241022",
+      "claude-3-5-haiku-20241022",
+      "claude-3-opus-20240229",
+    ],
+    warnings: [],
+  },
+  {
+    id: "codex",
+    name: "Codex",
+    executable: "codex",
+    format: "TOML",
+    description: "OpenAI Codex CLI 智能体",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: ["gpt-4o", "o1", "o3-mini", "claude-3-7-sonnet-20250219", "deepseek-r1"],
+    warnings: [],
+  },
+  {
+    id: "claude-desktop",
+    name: "Claude Desktop",
+    executable: "app",
+    format: "JSON",
+    description: "Anthropic 官方桌面客户端",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"],
+    warnings: [],
+  },
+  {
+    id: "opencode",
+    name: "OpenCode",
+    executable: "opencode",
+    format: "JSON5",
+    description: "开源轻量 AI 编程助理",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: DEFAULT_MODELS,
+    warnings: [],
+  },
+  {
+    id: "openclaw",
+    name: "OpenClaw",
+    executable: "openclaw",
+    format: "JSON5",
+    description: "OpenClaw 智能体系统",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: DEFAULT_MODELS,
+    warnings: [],
+  },
+  {
+    id: "hermes",
+    name: "Hermes Agent",
+    executable: "hermes",
+    format: "YAML",
+    description: "Hermes 自动化智能体框架",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: DEFAULT_MODELS,
+    warnings: [],
+  },
+  {
+    id: "deepseek-harness",
+    name: "DeepSeek Harness",
+    executable: "dsh",
+    format: "YAML",
+    description: "DeepSeek 官方评测测试套件",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: ["deepseek-r1", "deepseek-v3"],
+    warnings: [],
+  },
+  {
+    id: "zcode",
+    name: "ZCode",
+    executable: "zcode",
+    format: "JSON",
+    description: "ZCode 编程套件",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: DEFAULT_MODELS,
+    warnings: [],
+  },
+  {
+    id: "kimi-code",
+    name: "Kimi Code",
+    executable: "kimi",
+    format: "TOML",
+    description: "Moonshot Kimi Code 编程工具",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: ["kimi-k1.5", "deepseek-r1", "claude-3-7-sonnet-20250219"],
+    warnings: [],
+  },
+  {
+    id: "grok-build",
+    name: "Grok Build",
+    executable: "grok",
+    format: "TOML",
+    description: "xAI Grok 构建工具",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: ["grok-2", "deepseek-r1"],
+    warnings: [],
+  },
+  {
+    id: "pi",
+    name: "Pi Coding Agent",
+    executable: "pi",
+    format: "JSON",
+    description: "Pi 编程客户端",
+    installed: false,
+    cliInstalled: false,
+    version: "",
+    cliVersion: "",
+    appVersion: "",
+    executablePath: "",
+    configFound: false,
+    configured: false,
+    currentModel: "",
+    configPaths: [],
+    supportedModels: DEFAULT_MODELS,
+    warnings: [],
+  },
+]
+
 interface ClaudeDraft {
   opus: string
   sonnet: string
@@ -92,10 +318,12 @@ interface ClaudeDraft {
 }
 
 export function AgentsPage() {
-  const [agents, setAgents] = useState<AgentInfo[]>([])
-  const [selectedId, setSelectedId] = useState<string>("claude-code")
+  const [agents, setAgents] = useState<AgentInfo[]>(DEFAULT_AGENTS)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [activeSubpage, setActiveSubpage] = useState<"core" | "management">("core")
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [detecting, setDetecting] = useState(false)
+  const [listFilter, setListFilter] = useState<"installed" | "uninstalled" | "all">("installed")
   const [models, setModels] = useState<string[]>(DEFAULT_MODELS)
   const [codexNativeStatus, setCodexNativeStatus] = useState<CodexNativeStatus | null>(null)
 
@@ -135,9 +363,39 @@ export function AgentsPage() {
     }, 4000)
   }
 
+  // Derived installed & configured counts
+  const installedAgents = useMemo(() => agents.filter((a) => a.installed), [agents])
+  const uninstalledAgents = useMemo(() => agents.filter((a) => !a.installed), [agents])
+  const configuredCount = useMemo(() => agents.filter((a) => a.configured).length, [agents])
+
+  // Filtered displayed list in the sidebar
+  const displayedAgents = useMemo(() => {
+    if (listFilter === "installed") {
+      return installedAgents
+    }
+    if (listFilter === "uninstalled") {
+      return uninstalledAgents
+    }
+    return agents
+  }, [listFilter, installedAgents, uninstalledAgents, agents])
+
   const selectedAgent = useMemo(() => {
-    return agents.find((a) => a.id === selectedId) || agents[0]
+    if (!selectedId) return null
+    return agents.find((a) => a.id === selectedId) || null
   }, [agents, selectedId])
+
+  // Handle filter change with auto-selection of active client in new list
+  const handleFilterChange = (val: "installed" | "uninstalled" | "all") => {
+    setListFilter(val)
+    let nextList = agents
+    if (val === "installed") nextList = installedAgents
+    else if (val === "uninstalled") nextList = uninstalledAgents
+
+    // If currently selected agent is not in the new filtered list, unselect so user chooses from the new view
+    if (selectedId && !nextList.some((a) => a.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }
 
   // Load detail for a selected agent
   const loadAgentDetail = useCallback(async (id: string) => {
@@ -169,38 +427,49 @@ export function AgentsPage() {
   }, [])
 
   // Load all agents and models
-  const loadAgents = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [list, modelList, codexStatus] = await Promise.all([
-        ListAgents(),
-        GetAvailableModels().catch(() => null),
-        GetCodexNativeStatus().catch(() => null),
-      ])
+  const loadAgents = useCallback(
+    async (preferredId?: string | null) => {
+      setDetecting(true)
+      try {
+        const [list, modelList, codexStatus] = await Promise.all([
+          ListAgents().catch(() => null),
+          GetAvailableModels().catch(() => null),
+          GetCodexNativeStatus().catch(() => null),
+        ])
 
-      if (list && list.length > 0) {
-        setAgents(list)
-      }
-      if (modelList && modelList.length > 0) {
-        setModels(modelList)
-      }
-      if (codexStatus) {
-        setCodexNativeStatus(codexStatus)
-      }
+        let activeList = DEFAULT_AGENTS
+        if (list && list.length > 0) {
+          setAgents(list)
+          activeList = list
+        }
+        if (modelList && modelList.length > 0) {
+          setModels(modelList)
+        }
+        if (codexStatus) {
+          setCodexNativeStatus(codexStatus)
+        }
 
-      await loadAgentDetail(selectedId)
-    } catch (err: any) {
-      showNotification("error", `探测客户端失败: ${err?.message || err}`)
-    } finally {
-      setLoading(false)
-    }
-  }, [loadAgentDetail, selectedId])
+        const targetId = preferredId || selectedId
+        if (targetId && activeList.some((a) => a.id === targetId)) {
+          await loadAgentDetail(targetId)
+        }
+      } catch (err: any) {
+        showNotification("error", `探测客户端失败: ${err?.message || err}`)
+      } finally {
+        setDetecting(false)
+        setInitialLoading(false)
+      }
+    },
+    [loadAgentDetail, selectedId]
+  )
 
   useEffect(() => {
     loadAgents()
-  }, [loadAgents])
+    // Run once on mount; subsequent reloads triggered by user action
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // When selected agent changes
+  // When selected agent changes (without triggering full list re-detection)
   const handleSelectAgent = (id: string) => {
     setSelectedId(id)
     loadAgentDetail(id)
@@ -241,7 +510,7 @@ export function AgentsPage() {
 
   // Save / Apply configuration
   const handleApplyConfig = async () => {
-    if (!selectedAgent) return
+    if (!selectedAgent || !selectedId) return
     setBusy(true)
     try {
       if (selectedId === "claude-code") {
@@ -267,7 +536,7 @@ export function AgentsPage() {
       }
 
       showNotification("success", `已成功更新 ${selectedAgent.name} 配置！`)
-      await loadAgents()
+      await loadAgents(selectedId)
     } catch (err: any) {
       showNotification("error", `写入配置失败: ${err?.message || err}`)
     } finally {
@@ -277,12 +546,12 @@ export function AgentsPage() {
 
   // Close / Remove configuration
   const handleCloseConfig = async () => {
-    if (!selectedAgent) return
+    if (!selectedAgent || !selectedId) return
     setBusy(true)
     try {
       await CloseAgentConfig(selectedId)
       showNotification("success", `已关闭 ${selectedAgent.name} 的代理配置`)
-      await loadAgents()
+      await loadAgents(selectedId)
     } catch (err: any) {
       showNotification("error", `关闭配置失败: ${err?.message || err}`)
     } finally {
@@ -292,7 +561,7 @@ export function AgentsPage() {
 
   // Launch Agent
   const handleLaunchAgent = async () => {
-    if (!selectedAgent) return
+    if (!selectedAgent || !selectedId) return
     try {
       await LaunchAgent(selectedId)
       showNotification("success", `已启动 ${selectedAgent.name}`)
@@ -307,7 +576,7 @@ export function AgentsPage() {
     try {
       await RestoreCodexOfficialConfig()
       showNotification("success", "Codex 已重置为官方登录配置")
-      await loadAgents()
+      await loadAgents(selectedId)
     } catch (err: any) {
       showNotification("error", `重置失败: ${err?.message || err}`)
     } finally {
@@ -317,11 +586,12 @@ export function AgentsPage() {
 
   // Restore specific backup
   const handleRestoreBackup = async (fileName: string) => {
+    if (!selectedId) return
     setBusy(true)
     try {
       await RestoreSpecificBackup(selectedId, fileName)
       showNotification("success", "已成功从备份恢复配置")
-      await loadAgents()
+      await loadAgents(selectedId)
     } catch (err: any) {
       showNotification("error", `恢复备份失败: ${err?.message || err}`)
     } finally {
@@ -332,9 +602,29 @@ export function AgentsPage() {
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-border/40 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">智能体配置</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight">智能体配置</h1>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Badge variant="secondary" className="text-xs py-0.5 px-2 gap-1 font-normal">
+                <ShieldCheck className="size-3.5 text-emerald-500" />
+                <span>已安装 {installedAgents.length} / {agents.length}</span>
+              </Badge>
+              {configuredCount > 0 && (
+                <Badge variant="success" className="text-xs py-0.5 px-2 gap-1 font-normal">
+                  <Zap className="size-3.5" />
+                  <span>已接入 {configuredCount} 款</span>
+                </Badge>
+              )}
+              {detecting && (
+                <Badge variant="outline" className="text-[11px] py-0.5 px-2 gap-1 text-muted-foreground animate-pulse">
+                  <RefreshCw className="size-3 animate-spin text-primary" />
+                  <span>正在检测中...</span>
+                </Badge>
+              )}
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
             原生智能体客户端一键路由与上下文精细化控制（写前事务化备份，支持秒级逆序回滚）
           </p>
@@ -343,13 +633,13 @@ export function AgentsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => loadAgents()}
-          disabled={loading || busy}
-          className="h-8 text-xs gap-1.5"
+          onClick={() => loadAgents(selectedId)}
+          disabled={detecting || busy}
+          className="h-8 text-xs gap-1.5 shrink-0"
           title="重新检测本机安装状态与配置"
         >
-          <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
-          <span>重新检测</span>
+          <RefreshCw className={`size-3.5 ${detecting ? "animate-spin text-primary" : ""}`} />
+          <span>{detecting ? "检测中..." : "重新检测"}</span>
         </Button>
       </div>
 
@@ -376,70 +666,165 @@ export function AgentsPage() {
       {/* Main Two-Column Master-Detail Layout */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Left Master Sidebar */}
-        <div className="w-full md:w-64 shrink-0 space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Bot className="size-4 text-muted-foreground" />
-            <div>
-              <h2 className="text-xs font-semibold text-foreground">本机客户端</h2>
-              <p className="text-[10px] text-muted-foreground">选择需要管理的智能体</p>
+        <div className="w-full md:w-68 shrink-0 space-y-3">
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Bot className="size-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <h2 className="text-xs font-semibold text-foreground truncate">本机客户端</h2>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {detecting ? "正在检测..." : "选择管理的智能体"}
+                </p>
+              </div>
+            </div>
+
+            {/* Select Filter Component */}
+            <div className="w-[110px] shrink-0">
+              {initialLoading ? (
+                <Skeleton className="h-7 w-full rounded-lg" />
+              ) : (
+                <Select
+                  value={listFilter}
+                  onValueChange={(val) => {
+                    if (val) handleFilterChange(val as "installed" | "uninstalled" | "all")
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[11px] px-2 py-0 bg-background/90 border-border/60">
+                    <SelectValue placeholder="筛选...">
+                      {(val: string | null) => {
+                        if (val === "installed") return `已安装 (${installedAgents.length})`
+                        if (val === "uninstalled") return `未安装 (${uninstalledAgents.length})`
+                        return `全部 (${agents.length})`
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent align="end" className="w-[130px]">
+                    <SelectItem value="installed">
+                      已安装 ({installedAgents.length})
+                    </SelectItem>
+                    <SelectItem value="uninstalled">
+                      未安装 ({uninstalledAgents.length})
+                    </SelectItem>
+                    <SelectItem value="all">
+                      全部 ({agents.length})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
-          <div className="space-y-1">
-            {agents.map((client) => {
-              const active = selectedId === client.id
-              const icon = clientIcons[client.id] || clientIcons["claude-code"]
-              const isConfigured = client.configured
-              const isInstalled = client.installed
+          {/* Empty Prompt if displayed list is empty */}
+          {displayedAgents.length === 0 && !detecting && (
+            <div className="p-3 rounded-xl border border-dashed border-border/60 bg-muted/20 text-center space-y-1">
+              <p className="text-xs text-muted-foreground">
+                {listFilter === "installed"
+                  ? "未检测到已安装的客户端"
+                  : listFilter === "uninstalled"
+                    ? "暂无未安装客户端"
+                    : "暂无客户端"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {listFilter === "installed"
+                  ? "可切换为“全部”查看所有客户端"
+                  : "可切换为“已安装”查看当前就绪的客户端"}
+              </p>
+            </div>
+          )}
 
-              let statusText = "未检测到安装"
-              if (isConfigured) {
-                statusText = `已配置 · ${client.currentModel || "CPA"}`
-              } else if (isInstalled) {
-                statusText = `已安装 · ${client.version ? client.version.slice(0, 14) : "就绪"}`
-              } else if (client.configFound) {
-                statusText = "仅有配置"
-              }
-
-              return (
-                <button
-                  key={client.id}
-                  onClick={() => handleSelectAgent(client.id)}
-                  className={`flex items-center justify-between w-full p-2.5 rounded-xl border text-left transition-all ${
-                    active
-                      ? "bg-card border-border shadow-xs"
-                      : "border-transparent hover:bg-muted/40 text-muted-foreground hover:text-foreground"
-                  }`}
+          {/* Agent list items or skeleton */}
+          {initialLoading ? (
+            <div className="space-y-1.5 animate-in fade-in-50 duration-200">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between w-full p-2.5 rounded-xl border border-border/40 bg-card/40"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="size-7 rounded-lg bg-muted/60 p-1 flex items-center justify-center shrink-0 border border-border/30">
-                      <img src={icon} alt="" className="size-full object-contain" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate">{client.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{statusText}</p>
+                    <Skeleton className="size-7 rounded-lg shrink-0" />
+                    <div className="space-y-1.5 min-w-0">
+                      <Skeleton className="h-3.5 w-24 rounded-xs" />
+                      <Skeleton className="h-2.5 w-16 rounded-xs" />
                     </div>
                   </div>
+                  <Skeleton className="size-2 rounded-full shrink-0" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {displayedAgents.map((client) => {
+                const active = selectedId === client.id
+                const icon = clientIcons[client.id] || clientIcons["claude-code"]
+                const isConfigured = client.configured
+                const isInstalled = client.installed
 
-                  {/* Status Indicator Dot */}
-                  <div
-                    className={`size-2 rounded-full shrink-0 ${
-                      isConfigured
-                        ? "bg-emerald-500"
-                        : isInstalled
-                          ? "bg-emerald-500/60"
-                          : "bg-muted-foreground/30"
+                let statusText = "未安装"
+                if (isConfigured) {
+                  statusText = `已配置 · ${client.currentModel || "CPA"}`
+                } else if (isInstalled) {
+                  statusText = `已安装 · ${client.version ? client.version.slice(0, 14) : "就绪"}`
+                } else if (client.configFound) {
+                  statusText = "仅有配置"
+                }
+
+                return (
+                  <button
+                    key={client.id}
+                    onClick={() => handleSelectAgent(client.id)}
+                    className={`flex items-center justify-between w-full p-2.5 rounded-xl border text-left transition-all ${
+                      active
+                        ? "bg-card border-border shadow-xs"
+                        : "border-transparent hover:bg-muted/40 text-muted-foreground hover:text-foreground"
                     }`}
-                    title={isConfigured ? "已接入代理" : isInstalled ? "已安装" : "未安装"}
-                  />
-                </button>
-              )
-            })}
-          </div>
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-7 rounded-lg bg-muted/60 p-1 flex items-center justify-center shrink-0 border border-border/30">
+                        <img src={icon} alt="" className="size-full object-contain" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">{client.name}</p>
+                          {isInstalled && (
+                            <span className="text-[9px] px-1 py-0.2 rounded-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+                              已装
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">{statusText}</p>
+                      </div>
+                    </div>
+
+                    {/* Status Indicator Dot */}
+                    <div
+                      className={`size-2 rounded-full shrink-0 ${
+                        isConfigured
+                          ? "bg-emerald-500 ring-2 ring-emerald-500/20"
+                          : isInstalled
+                            ? "bg-emerald-500/70"
+                            : client.configFound
+                              ? "bg-amber-500/60"
+                              : "bg-muted-foreground/30"
+                      }`}
+                      title={
+                        isConfigured
+                          ? "已接入代理"
+                          : isInstalled
+                            ? "已安装"
+                            : client.configFound
+                              ? "仅有配置"
+                              : "未安装"
+                      }
+                    />
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Right Detail Panel */}
-        {selectedAgent && (
+        {/* Right Detail Panel - Only shown when an agent is selected */}
+        {selectedAgent ? (
           <div className="flex-1 w-full space-y-6">
             {/* Tabs: 基础配置 / 配置管理 */}
             <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/40 w-fit">
@@ -468,13 +853,22 @@ export function AgentsPage() {
             {/* Subpage: 基础配置 */}
             {activeSubpage === "core" && (
               <div className="space-y-6">
-                {/* Two Top Status Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl border border-border/50 bg-card space-y-1">
+                {/* Top Status Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-xl border border-border/50 bg-card space-y-1">
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-medium">
-                      <ShieldCheck className="size-3.5 text-emerald-500" /> 安装状态
+                      <ShieldCheck className={`size-3.5 ${selectedAgent.installed ? "text-emerald-500" : "text-muted-foreground"}`} />
+                      安装状态
                     </span>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p
+                      className={`text-sm font-semibold ${
+                        selectedAgent.installed
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : selectedAgent.configFound
+                            ? "text-amber-500"
+                            : "text-muted-foreground"
+                      }`}
+                    >
                       {selectedAgent.installed
                         ? "已检测到客户端"
                         : selectedAgent.configFound
@@ -483,12 +877,29 @@ export function AgentsPage() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-border/50 bg-card space-y-1">
+                  <div className="p-3.5 rounded-xl border border-border/50 bg-card space-y-1">
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-medium">
                       <Terminal className="size-3.5" /> 客户端版本
                     </span>
-                    <p className="text-sm font-semibold font-mono text-foreground truncate" title={selectedAgent.version}>
-                      {selectedAgent.version || selectedAgent.executablePath || "—"}
+                    <p
+                      className="text-sm font-semibold font-mono text-foreground truncate"
+                      title={selectedAgent.version || selectedAgent.executablePath}
+                    >
+                      {selectedAgent.version || (selectedAgent.installed ? "已就绪" : "—")}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-border/50 bg-card space-y-1">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Zap className={`size-3.5 ${selectedAgent.configured ? "text-emerald-500" : "text-muted-foreground"}`} />
+                      代理接入
+                    </span>
+                    <p
+                      className={`text-sm font-semibold ${
+                        selectedAgent.configured ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      {selectedAgent.configured ? "已接入本地代理" : "未接入代理"}
                     </p>
                   </div>
                 </div>
@@ -831,7 +1242,9 @@ export function AgentsPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleLaunchAgent}
+                      disabled={!selectedAgent.installed}
                       className="h-8 text-xs gap-1.5 font-mono"
+                      title={selectedAgent.installed ? `启动 ${selectedAgent.name}` : "未检测到客户端安装"}
                     >
                       <Play className="size-3 fill-current" />
                       启动 {selectedAgent.name}
@@ -891,6 +1304,24 @@ export function AgentsPage() {
                 </Card>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="flex-1 w-full min-h-[460px] flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-border/60 bg-card/20 text-center">
+            <div className="size-14 rounded-2xl bg-muted/60 border border-border/40 flex items-center justify-center mb-3.5 shadow-2xs">
+              <Bot
+                className={`size-7 ${
+                  initialLoading ? "text-primary animate-pulse" : "text-muted-foreground/60"
+                }`}
+              />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {initialLoading ? "正在检测本机智能体客户端..." : "请选择需要配置的智能体"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+              {initialLoading
+                ? "正在探测本机安装的智能体和运行环境，检测完成后请在左侧选择客户端"
+                : "请从左侧列表中选择一个智能体客户端，以查看其安装状态并配置代理模型及上下文策略"}
+            </p>
           </div>
         )}
       </div>

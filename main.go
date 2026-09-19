@@ -75,8 +75,10 @@ func main() {
 	// Create initial main window
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "EasyCLIProxyAPI",
-		Width:  1100,
-		Height: 720,
+		Width:     1100,
+		Height:    720,
+		MinWidth:  800,
+		MinHeight: 500,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 52,
 			Backdrop:                application.MacBackdropTranslucent,

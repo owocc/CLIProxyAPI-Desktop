@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -25,12 +26,18 @@ func (as *AgentService) SetApp(app *application.App) {
 	as.app = app
 }
 
-// ListAgents returns discovery status for all supported agent targets.
+// ListAgents returns discovery status for all supported agent targets concurrently.
 func (as *AgentService) ListAgents() []model.AgentInfo {
-	results := make([]model.AgentInfo, 0, len(agents.AllClientIds))
-	for _, id := range agents.AllClientIds {
-		results = append(results, agents.DiscoverAgent(id))
+	results := make([]model.AgentInfo, len(agents.AllClientIds))
+	var wg sync.WaitGroup
+	for i, id := range agents.AllClientIds {
+		wg.Add(1)
+		go func(idx int, clientId string) {
+			defer wg.Done()
+			results[idx] = agents.DiscoverAgent(clientId)
+		}(i, id)
 	}
+	wg.Wait()
 	return results
 }
 

@@ -90,7 +90,7 @@ export function LaunchAgent(id: string): $CancellablePromise<void> {
 }
 
 /**
- * ListAgents returns discovery status for all supported agent targets.
+ * ListAgents returns discovery status for all supported agent targets concurrently.
  */
 export function ListAgents(): $CancellablePromise<model$0.AgentInfo[] | null> {
     return $Call.ByID(255089387);

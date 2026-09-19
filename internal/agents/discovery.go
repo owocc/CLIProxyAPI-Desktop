@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -153,6 +154,14 @@ func AgentExecutableDirectories(home string) []string {
 	push(filepath.Join(home, ".bun", "bin"))
 	push(filepath.Join(home, ".cargo", "bin"))
 	push(filepath.Join(home, "bin"))
+	push(filepath.Join(home, ".yarn", "bin"))
+	push(filepath.Join(home, ".volta", "bin"))
+	push(filepath.Join(home, ".asdf", "shims"))
+	push(filepath.Join(home, ".asdf", "bin"))
+	push(filepath.Join(home, ".fnm", "current", "bin"))
+	push(filepath.Join(home, ".local", "share", "fnm", "current", "bin"))
+	push(filepath.Join(home, "Library", "pnpm"))
+	push(filepath.Join(home, ".pnpm"))
 
 	// 3. Package manager environment directories
 	if p := os.Getenv("PNPM_HOME"); p != "" {
@@ -190,11 +199,17 @@ func AgentExecutableDirectories(home string) []string {
 		push("/usr/local/bin")
 		push("/usr/bin")
 		push("/bin")
+		push("/usr/local/sbin")
+		push("/usr/sbin")
+		push("/sbin")
 	}
 
-	// 7. macOS Homebrew
+	// 7. macOS Homebrew & MacPorts
 	if runtime.GOOS == "darwin" {
 		push("/opt/homebrew/bin")
+		push("/opt/homebrew/sbin")
+		push("/opt/local/bin")
+		push("/opt/local/sbin")
 	}
 
 	// 8. Windows directories
@@ -298,15 +313,15 @@ func FindAgentExecutable(clientId string, home string) string {
 		if fi, err := os.Stat(kimiBin); err == nil && !fi.IsDir() {
 			return kimiBin
 		}
-		return findNamedAgentExecutable(dirs, []string{"kimi"})
+		return findNamedAgentExecutable(dirs, []string{"kimi", "kimi-code"})
 	case model.AgentGrokBuild:
 		grokBin := filepath.Join(home, ".grok", "bin", "grok")
 		if fi, err := os.Stat(grokBin); err == nil && !fi.IsDir() {
 			return grokBin
 		}
-		return findNamedAgentExecutable(dirs, []string{"grok"})
+		return findNamedAgentExecutable(dirs, []string{"grok", "grok-build"})
 	case model.AgentOpenCode:
-		if p := findNamedAgentExecutable(dirs, []string{"opencode"}); p != "" {
+		if p := findNamedAgentExecutable(dirs, []string{"opencode", "opencode-cli"}); p != "" {
 			return p
 		}
 		managed := filepath.Join(home, ".opencode", "bin", "opencode")
@@ -325,17 +340,17 @@ func FindAgentExecutable(clientId string, home string) string {
 		}
 		return findNamedAgentExecutable(dirs, []string{"opencode-cli"})
 	case model.AgentClaudeCode:
-		return findNamedAgentExecutable(dirs, []string{"claude"})
+		return findNamedAgentExecutable(dirs, []string{"claude", "claude-code"})
 	case model.AgentCodex:
-		return findNamedAgentExecutable(dirs, []string{"codex"})
+		return findNamedAgentExecutable(dirs, []string{"codex", "codex-cli"})
 	case model.AgentOpenClaw:
-		return findNamedAgentExecutable(dirs, []string{"openclaw"})
+		return findNamedAgentExecutable(dirs, []string{"openclaw", "claw"})
 	case model.AgentHermes:
 		return findNamedAgentExecutable(dirs, []string{"hermes"})
 	case model.AgentDeepSeekHarness:
-		return findNamedAgentExecutable(dirs, []string{"dsh"})
+		return findNamedAgentExecutable(dirs, []string{"dsh", "deepseek-harness"})
 	case model.AgentPi:
-		return findNamedAgentExecutable(dirs, []string{"pi"})
+		return findNamedAgentExecutable(dirs, []string{"pi", "pi-code"})
 	default:
 		return ""
 	}
@@ -382,13 +397,20 @@ func FindDesktopAppInstallation(clientId string, home string) string {
 
 // ReadAgentVersion runs the executable with --version and extracts the detected version string.
 func ReadAgentVersion(exePath string, home string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, exePath, "--version")
-	// Prepend executable directory to PATH so npm shims can locate their siblings
-	exeDir := filepath.Dir(exePath)
-	cmd.Env = append(os.Environ(), "PATH="+exeDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	dirs := AgentExecutableDirectories(home)
+	augmentedPath := strings.Join(dirs, string(os.PathListSeparator))
+	if curPath := os.Getenv("PATH"); curPath != "" {
+		augmentedPath = augmentedPath + string(os.PathListSeparator) + curPath
+	}
+	cmd.Env = append(os.Environ(),
+		"PATH="+augmentedPath,
+		"NO_COLOR=1",
+		"TERM=dumb",
+	)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil && len(out) == 0 {
@@ -424,25 +446,32 @@ func readMacosAppVersion(appPath string) string {
 	return ""
 }
 
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+
+func stripAnsi(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
+}
+
 func normalizeDetectedVersion(val string) string {
+	val = stripAnsi(val)
 	val = strings.TrimSpace(val)
 	if val == "" || len(val) > 256 {
 		return ""
 	}
+	var sb strings.Builder
 	hasDigit := false
-	for i := 0; i < len(val); i++ {
-		b := val[i]
-		if b >= '0' && b <= '9' {
+	for _, r := range val {
+		if r >= '0' && r <= '9' {
 			hasDigit = true
 		}
-		if b < 32 && b != '\t' {
-			return ""
+		if r >= 32 || r == '\t' {
+			sb.WriteRune(r)
 		}
 	}
 	if !hasDigit {
 		return ""
 	}
-	return val
+	return strings.TrimSpace(sb.String())
 }
 
 // DiscoverAgent inspects current client environment and returns its AgentInfo.
@@ -594,13 +623,12 @@ func DiscoverAgent(clientId string) model.AgentInfo {
 		version = appVersion
 	}
 
-	// 4. Determine installation per 04-agents.md §2.1:
-	// installed = version.is_some() || (client in {ClaudeDesktop, OpenCode, ZCode} && executable_found) || app_installed
-	isDesktopClient := (clientId == model.AgentClaudeDesktop || clientId == model.AgentZCode || clientId == model.AgentOpenCode)
+	// 4. Determine installation:
+	// An agent is installed if its executable or desktop application bundle exists on disk, or if version was detected.
 	appInstalled := (appPath != "")
 	executableFound := (exePath != "")
 
-	installed := (version != "") || (isDesktopClient && (executableFound || appInstalled)) || appInstalled
+	installed := executableFound || appInstalled || (version != "")
 	cliInstalled := executableFound
 
 	// 5. Check config files
