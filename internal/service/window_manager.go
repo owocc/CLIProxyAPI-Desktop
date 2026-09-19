@@ -9,14 +9,13 @@ import (
 )
 
 // WindowManager coordinates the lifecycle of the primary WebviewWindow,
-// including creating on demand, hiding, and destroying the WebKit process
-// when lightweight mode is engaged.
+// including creating on demand, hiding, and releasing the WebKit rendering
+// process when lightweight mode is engaged.
 type WindowManager struct {
 	mu            sync.Mutex
 	app           *application.App
 	configService *ConfigService
 	mainWindow    *application.WebviewWindow
-	isDestroying  bool
 }
 
 func NewWindowManager(app *application.App, configService *ConfigService) *WindowManager {
@@ -60,42 +59,17 @@ func (wm *WindowManager) HideMainWindow() {
 	}
 }
 
-// DestroyMainWindow destroys the main window and its underlying WebKit WebContent process,
-// releasing the memory while keeping the core proxy running in the background.
+// DestroyMainWindow closes the main window so its WebKit process is released,
+// leaving the proxy core and tray running in the background.
 func (wm *WindowManager) DestroyMainWindow() {
 	wm.mu.Lock()
-	if wm.mainWindow != nil {
-		log.Println("[WindowManager] Closing WebUI window for lightweight mode; releasing WebKit memory")
-		win := wm.mainWindow
-		wm.mainWindow = nil
-		wm.isDestroying = true
-		wm.mu.Unlock()
-
-		win.Close()
-
-		wm.mu.Lock()
-		wm.isDestroying = false
-		wm.mu.Unlock()
-		return
-	}
+	win := wm.mainWindow
+	wm.mainWindow = nil
 	wm.mu.Unlock()
-}
 
-// HandleWindowClosing applies the configured close behavior when the user clicks the window close button.
-func (wm *WindowManager) HandleWindowClosing() {
-	cfg, err := wm.configService.GetGuiConfig()
-	if err != nil {
-		log.Printf("[WindowManager] Failed to read GUI config on close: %v; minimizing", err)
-		wm.HideMainWindow()
-		return
-	}
-
-	if cfg.LightweightMode || cfg.CloseBehavior == "lightweight" {
-		wm.DestroyMainWindow()
-	} else if cfg.CloseBehavior == "minimize-to-tray" || cfg.CloseBehavior == "tray" {
-		wm.HideMainWindow()
-	} else {
-		wm.app.Quit()
+	if win != nil {
+		log.Println("[WindowManager] DestroyMainWindow: closing window via win.Close()")
+		win.Close()
 	}
 }
 
@@ -133,15 +107,40 @@ func (wm *WindowManager) bindWindowEvents(win *application.WebviewWindow) {
 	if win == nil {
 		return
 	}
-	win.OnWindowEvent(events.Common.WindowClosing, func(e *application.WindowEvent) {
-		wm.mu.Lock()
-		if wm.isDestroying {
-			wm.mu.Unlock()
+
+	// RegisterHook runs synchronously before any default listeners.
+	// This prevents race conditions and crashes during window destruction.
+	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		cfg, err := wm.configService.GetGuiConfig()
+		if err != nil {
+			log.Printf("[WindowManager] Failed to read GUI config on close: %v; minimizing", err)
+			e.Cancel()
+			wm.HideMainWindow()
 			return
 		}
-		wm.mu.Unlock()
 
+		isLightweight := cfg.LightweightMode || cfg.CloseBehavior == "lightweight"
+		isMinimize := cfg.CloseBehavior == "minimize-to-tray" || cfg.CloseBehavior == "tray"
+
+		if isLightweight {
+			log.Println("[WindowManager] Closing window in lightweight mode; allowing native window destroy")
+			wm.mu.Lock()
+			wm.mainWindow = nil
+			wm.mu.Unlock()
+			// Do NOT cancel the event! Wails' built-in listener will natively close and destroy the window cleanly once.
+			return
+		}
+
+		if isMinimize {
+			e.Cancel()
+			log.Println("[WindowManager] Minimizing window to tray")
+			wm.HideMainWindow()
+			return
+		}
+
+		// Exit behavior
 		e.Cancel()
-		wm.HandleWindowClosing()
+		log.Println("[WindowManager] Window close configured to exit application")
+		wm.app.Quit()
 	})
 }

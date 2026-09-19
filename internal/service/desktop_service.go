@@ -31,9 +31,12 @@ func (ds *DesktopService) SetWindowManager(wm *WindowManager) {
 func (ds *DesktopService) EnterLightweightMode() error {
 	if ds.configService != nil {
 		cfg, err := ds.configService.GetGuiConfig()
-		if err == nil && !cfg.LightweightMode {
-			cfg.LightweightMode = true
-			_ = ds.configService.SaveGuiConfig(cfg)
+		if err == nil {
+			if !cfg.LightweightMode || cfg.CloseBehavior != "lightweight" {
+				cfg.LightweightMode = true
+				cfg.CloseBehavior = "lightweight"
+				_ = ds.configService.SaveGuiConfig(cfg)
+			}
 		}
 	}
 	if ds.wm != nil {

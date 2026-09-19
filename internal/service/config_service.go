@@ -56,7 +56,11 @@ func (cs *ConfigService) GetGuiConfig() (model.GuiConfigFile, error) {
 
 // SaveGuiConfig persists the complete config.toml and synchronizes to config.yaml.
 func (cs *ConfigService) SaveGuiConfig(cfg model.GuiConfigFile) error {
-	return cs.manager.SaveGuiConfig(cfg)
+	err := cs.manager.SaveGuiConfig(cfg)
+	if err == nil {
+		cs.emitEvent("gui-config-changed", cfg)
+	}
+	return err
 }
 
 // GetGuiSettings returns only the GUI/desktop settings portion.

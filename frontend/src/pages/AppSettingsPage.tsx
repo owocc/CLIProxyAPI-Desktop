@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Events } from "@wailsio/runtime"
 import { useTheme, type Theme } from "../context/ThemeContext"
 import { useCoreRuntime } from "../context/CoreRuntimeContext"
 import {
@@ -46,6 +47,8 @@ export function AppSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [enteringLightweight, setEnteringLightweight] = useState(false)
 
+  const isLightweightActive = Boolean(config?.lightweightMode || config?.closeBehavior === "lightweight")
+
   const loadConfig = async () => {
     setLoading(true)
     setError(null)
@@ -61,6 +64,18 @@ export function AppSettingsPage() {
 
   useEffect(() => {
     loadConfig()
+
+    const unbind = Events.On("gui-config-changed", (ev: any) => {
+      if (ev?.data) {
+        setConfig(ev.data)
+      } else {
+        loadConfig()
+      }
+    })
+
+    return () => {
+      unbind()
+    }
   }, [])
 
   const handleUpdateConfig = async (newConfig: GuiConfigFile) => {
@@ -285,7 +300,7 @@ export function AppSettingsPage() {
               </div>
             </div>
             <Switch
-              checked={config.lightweightMode}
+              checked={isLightweightActive}
               onCheckedChange={(checked) =>
                 handleUpdateConfig({
                   ...config,

@@ -72,6 +72,11 @@ func (tm *TrayManager) Setup() error {
 		tm.UpdateMenu()
 	})
 
+	// Listen for config changes to keep menu items in sync
+	tm.app.Event.On("gui-config-changed", func(e *application.CustomEvent) {
+		tm.UpdateMenu()
+	})
+
 	log.Println("[TrayManager] System tray initialized successfully")
 	return nil
 }
@@ -156,18 +161,33 @@ func (tm *TrayManager) rebuildMenuLocked() {
 
 	// 4. Lightweight Mode options
 	cfg, _ := tm.configService.GetGuiConfig()
-	lightweightItem := menu.AddCheckbox("轻量模式 (关闭窗口释放内存)", cfg.LightweightMode)
+	isLightweight := cfg.LightweightMode || cfg.CloseBehavior == "lightweight"
+	lightweightItem := menu.AddCheckbox("轻量模式 (关闭窗口释放内存)", isLightweight)
 	lightweightItem.OnClick(func(ctx *application.Context) {
-		cfg.LightweightMode = !cfg.LightweightMode
-		_ = tm.configService.SaveGuiConfig(cfg)
+		currentCfg, err := tm.configService.GetGuiConfig()
+		if err != nil {
+			return
+		}
+		newVal := !(currentCfg.LightweightMode || currentCfg.CloseBehavior == "lightweight")
+		currentCfg.LightweightMode = newVal
+		if newVal {
+			currentCfg.CloseBehavior = "lightweight"
+		} else {
+			if currentCfg.CloseBehavior == "lightweight" {
+				currentCfg.CloseBehavior = "minimize-to-tray"
+			}
+		}
+		_ = tm.configService.SaveGuiConfig(currentCfg)
 		tm.UpdateMenu()
 	})
 
 	menu.Add("立即进入轻量模式").OnClick(func(ctx *application.Context) {
 		log.Println("[Tray] Entering lightweight mode from tray menu")
-		if !cfg.LightweightMode {
-			cfg.LightweightMode = true
-			_ = tm.configService.SaveGuiConfig(cfg)
+		currentCfg, err := tm.configService.GetGuiConfig()
+		if err == nil {
+			currentCfg.LightweightMode = true
+			currentCfg.CloseBehavior = "lightweight"
+			_ = tm.configService.SaveGuiConfig(currentCfg)
 		}
 		if tm.windowManager != nil {
 			tm.windowManager.DestroyMainWindow()
