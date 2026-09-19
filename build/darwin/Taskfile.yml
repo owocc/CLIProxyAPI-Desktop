@@ -134,6 +134,29 @@ tasks:
     cmds:
       - task: create:dmg
 
+  package:zip:
+    summary: Packages the .app bundle into a portable .zip archive
+    platforms: [darwin]
+    cmds:
+      - ditto -c -k --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/{{.APP_NAME}}-darwin-{{.ARCH | default "universal"}}.zip"
+
+  package:universal:dmg:
+    summary: Packages darwin universal binary into a styled `.dmg`
+    deps:
+      - task: package:universal
+    cmds:
+      - task: create:dmg
+
+  package:universal:all:
+    summary: Packages darwin universal binary into .app, .dmg and .zip
+    deps:
+      - task: package:universal
+    cmds:
+      - task: create:dmg
+      - task: package:zip
+        vars:
+          ARCH: universal
+
   create:dmg:
     summary: Creates a configurable `.dmg` from the `.app` bundle
     platforms: [darwin]

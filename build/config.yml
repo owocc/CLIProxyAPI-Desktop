@@ -5,12 +5,12 @@ version: '3'
 
 # This information is used to generate the build assets.
 info:
-  companyName: "EasyCLIProxyAPI" # The name of the company
-  productName: "EasyCLIProxyAPI" # The name of the application
-  productIdentifier: "com.easycliproxyapi.app" # The unique product identifier
-  description: "EasyCLIProxyAPI" # The application description
-  copyright: "(c) 2026, EasyCLIProxyAPI" # Copyright text
-  comments: "EasyCLIProxyAPI" # Comments
+  companyName: "CPA" # The name of the company
+  productName: "CPA Desktop" # The name of the application
+  productIdentifier: "com.cpa.desktop" # The unique product identifier
+  description: "CPA Desktop" # The application description
+  copyright: "(c) 2026, CPA" # Copyright text
+  comments: "CPA Desktop" # Comments
   version: "0.0.1" # The application version
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension

@@ -1,59 +1,143 @@
-# Welcome to Your New Wails3 Project!
+# CPA Desktop
 
-Congratulations on generating your Wails3 application! This README will guide you through the next steps to get your project up and running.
+CPA Desktop 桌面客户端，基于 [Wails v3](https://v3.wails.io/) + Go + React 18 + TypeScript + Tailwind CSS 构建。
 
-## Getting Started
+---
 
-1. Navigate to your project directory in the terminal.
+## 🛠️ 本地开发环境要求
 
-2. To run your application in development mode, use the following command:
+- **Go**: 1.24+ 或 1.25+
+- **Node.js**: 20+ 或 22+ (npm / pnpm / bun)
+- **Wails v3 CLI**:
+  ```bash
+  go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23
+  ```
 
-   ```
-   wails3 dev
-   ```
+---
 
-   This will start your application and enable hot-reloading for both frontend and backend changes.
+## 🚀 开发模式
 
-3. To build your application for production, use:
+启动本地热重载开发模式（前端 Vite + 后端 Go 实时重载）：
 
-   ```
-   wails3 build
-   ```
+```bash
+wails3 dev
+```
 
-   This will create a production-ready executable in the `build` directory.
+如需单独进行前端页面调试：
+```bash
+cd frontend
+npm run dev
+```
 
-## Exploring Wails3 Features
+---
 
-Now that you have your project set up, it's time to explore the features that Wails3 offers:
+## 📦 多平台构建与打包指南
 
-1. **Check out the examples**: The best way to learn is by example. Visit the `examples` directory in the `v3/examples` directory to see various sample applications.
+所有构建任务均可通过 `wails3 task` 执行：
 
-2. **Run an example**: To run any of the examples, navigate to the example's directory and use:
+### 1. macOS (Intel & Apple Silicon)
 
-   ```
-   go run .
-   ```
+- **构建本地架构二进制**:
+  ```bash
+  wails3 task darwin:build
+  ```
+- **构建 Universal 通用二进制 (同时支持 x86_64 与 arm64)**:
+  ```bash
+  wails3 task darwin:build:universal
+  ```
+- **打包为 `.app` 应用包**:
+  ```bash
+  wails3 task darwin:package
+  # 或打包 Universal .app:
+  wails3 task darwin:package:universal
+  ```
+- **打包为 `.dmg` 镜像安装包**:
+  ```bash
+  wails3 task darwin:package:dmg
+  ```
+- **打包为便携式 `.zip` 归档包**:
+  ```bash
+  wails3 task darwin:package:zip
+  ```
+- **一键构建并打包 Universal .app + .dmg + .zip**:
+  ```bash
+  wails3 task darwin:package:universal:all
+  ```
 
-   Note: Some examples may be under development during the alpha phase.
+---
 
-3. **Explore the documentation**: Visit the [Wails3 documentation](https://v3.wails.io/) for in-depth guides and API references.
+### 2. Windows (amd64 / arm64)
 
-4. **Join the community**: Have questions or want to share your progress? Join the [Wails Discord](https://discord.gg/JDdSxwjhGf) or visit the [Wails discussions on GitHub](https://github.com/wailsapp/wails/discussions).
+> 提示：在 Windows 上编译无需额外安装 CGO 编译器，Wails v3 支持纯 Go 编译。
+> 打包 NSIS 安装包需系统安装有 NSIS（`makensis`）。
 
-## Project Structure
+- **构建 Windows 可执行程序 (`.exe`)**:
+  ```bash
+  wails3 task windows:build ARCH=amd64
+  ```
+- **打包 NSIS 安装程序**:
+  ```bash
+  wails3 task windows:package ARCH=amd64
+  ```
+- **打包免安装便携版 `.zip`**:
+  ```bash
+  wails3 task windows:create:zip ARCH=amd64
+  ```
+- **一键构建并生成安装包 + 便携 Zip**:
+  ```bash
+  wails3 task windows:package:all ARCH=amd64
+  ```
 
-Take a moment to familiarize yourself with your project structure:
+---
 
-- `frontend/`: Contains your frontend code (HTML, CSS, JavaScript/TypeScript)
-- `main.go`: The entry point of your Go backend
-- `app.go`: Define your application structure and methods here
-- `wails.json`: Configuration file for your Wails project
+### 3. Linux (Ubuntu / Debian / Fedora / Arch)
 
-## Next Steps
+> **依赖要求**：Linux 平台构建需要 CGO 支持以及 GTK / WebKitGTK 开发头文件。
+> - **Ubuntu / Debian**:
+>   ```bash
+>   sudo apt-get update && sudo apt-get install -y \
+>     libgtk-3-dev libwebkit2gtk-4.1-dev \
+>     libgtk-4-dev libwebkitgtk-6.0-dev \
+>     pkg-config gcc
+>   ```
+> - **Fedora / RHEL**:
+>   ```bash
+>   sudo dnf install gtk3-devel webkit2gtk4.1-devel gtk4-devel webkitgtk6.0-devel gcc pkgconf-pkg-config
+>   ```
 
-1. Modify the frontend in the `frontend/` directory to create your desired UI.
-2. Add backend functionality in `main.go`.
-3. Use `wails3 dev` to see your changes in real-time.
-4. When ready, build your application with `wails3 build`.
+- **构建 Linux 二进制**:
+  ```bash
+  wails3 task linux:build ARCH=amd64
+  ```
+- **打包 `.deb` 安装包 (Debian / Ubuntu)**:
+  ```bash
+  wails3 task linux:create:deb
+  ```
+- **打包 `.rpm` 安装包 (Fedora / RHEL)**:
+  ```bash
+  wails3 task linux:create:rpm
+  ```
+- **打包免安装便携版 `.tar.gz`**:
+  ```bash
+  wails3 task linux:create:archive
+  ```
+- **一键构建并打包 deb + rpm + tar.gz**:
+  ```bash
+  wails3 task linux:package
+  ```
 
-Happy coding with Wails3! If you encounter any issues or have questions, don't hesitate to consult the documentation or reach out to the Wails community.
+---
+
+## 🤖 GitHub Actions CI/CD 流水线
+
+项目内置了完整的 GitHub Actions 流水线（`.github/workflows/ci.yml`）：
+
+- **触发时机**：
+  - 推送版本标签（例如 `git tag v0.1.0 && git push --tags`）时自动触发三大平台构建与 Release 发布。
+  - 支持在 GitHub Actions 页面手动运行（`workflow_dispatch`）。
+- **构建矩阵**：
+  - **macOS**：生成 Universal 通用架构 DMG 安装包与 ZIP 便携包。
+  - **Windows**：生成 64 位 NSIS 安装程序与便携 ZIP。
+  - **Linux**：生成 DEB 安装包、RPM 安装包与 tar.gz 便携包。
+- **自动发布 Release**：
+  - 推送 `v*` 标签时，流水线会自动聚合所有平台产物，生成 SHA-256 校验和文件 `checksums.txt`，并自动发布至 GitHub Releases 供用户下载。

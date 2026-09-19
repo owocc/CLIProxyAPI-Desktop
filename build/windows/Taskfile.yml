@@ -104,6 +104,24 @@ tasks:
       FORMAT: '{{.FORMAT | default "nsis"}}'
       INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
 
+  package:all:
+    summary: Packages NSIS installer and portable zip archive
+    deps:
+      - task: build
+    cmds:
+      - task: create:nsis:installer
+      - task: create:zip
+
+  create:zip:
+    summary: Creates a portable zip archive for Windows
+    deps:
+      - task: build
+    cmds:
+      - cmd: powershell -Command "Compress-Archive -Path '{{.BIN_DIR}}\{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}\{{.APP_NAME}}-windows-{{.ARCH | default ARCH}}.zip' -Force"
+        platforms: [windows]
+      - cmd: zip -j "{{.BIN_DIR}}/{{.APP_NAME}}-windows-{{.ARCH | default ARCH}}.zip" "{{.BIN_DIR}}/{{.APP_NAME}}.exe"
+        platforms: [darwin, linux]
+
   generate:syso:
     summary: Generates Windows `.syso` file
     dir: build

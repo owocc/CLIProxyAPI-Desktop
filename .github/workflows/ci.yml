@@ -1,0 +1,183 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin
+            name: macOS Universal
+          - os: windows-latest
+            platform: windows
+            name: Windows x64
+          - os: ubuntu-latest
+            platform: linux
+            name: Linux x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          check-latest: true
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Wails v3 CLI
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23
+          GOPATH_BIN="$(go env GOPATH)/bin"
+          echo "$GOPATH_BIN" >> $GITHUB_PATH
+          if [ -n "$GITHUB_ENV" ]; then
+            echo "PATH=$GOPATH_BIN:$PATH" >> $GITHUB_ENV
+          fi
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libgtk-4-dev libwebkitgtk-6.0-dev \
+            pkg-config gcc libglib2.0-dev
+
+      - name: Ensure NSIS is installed (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y
+            $nsisPath = "C:\Program Files (x86)\NSIS"
+            if (Test-Path $nsisPath) {
+              Add-Content $env:GITHUB_PATH "$nsisPath"
+            }
+          }
+
+      - name: Install Frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend and generate bindings
+        shell: bash
+        run: |
+          wails3 task build:frontend
+
+      - name: Run Go tests
+        shell: bash
+        run: |
+          go test ./...
+
+      - name: Build & Package (macOS)
+        if: matrix.platform == 'darwin'
+        run: |
+          wails3 task darwin:package:universal
+          wails3 task darwin:package:dmg || echo "DMG generation finished with warning"
+          wails3 task darwin:package:zip
+
+      - name: Build & Package (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          wails3 task windows:build ARCH=amd64
+          wails3 task windows:create:zip ARCH=amd64
+          try {
+            wails3 task windows:package ARCH=amd64
+          } catch {
+            Write-Warning "NSIS package task returned: $_"
+          }
+
+      - name: Build & Package (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          wails3 task linux:build ARCH=amd64
+          wails3 task linux:create:archive ARCH=amd64
+          wails3 task linux:create:deb || echo "DEB generation finished with warning"
+          wails3 task linux:create:rpm || echo "RPM generation finished with warning"
+
+      - name: Prepare artifacts for upload
+        shell: bash
+        run: |
+          mkdir -p dist-artifacts
+          if [ "${{ matrix.platform }}" = "darwin" ]; then
+            find bin -maxdepth 1 -type f \( -name "*.dmg" -o -name "*.zip" \) -exec cp {} dist-artifacts/ \;
+          elif [ "${{ matrix.platform }}" = "windows" ]; then
+            find bin -maxdepth 1 -type f \( -name "*installer.exe" -o -name "*.zip" -o -name "*.exe" \) -exec cp {} dist-artifacts/ \;
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            find bin -maxdepth 1 -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.tar.gz" -o -name "*.AppImage" \) -exec cp {} dist-artifacts/ \;
+          fi
+          echo "=== Prepared artifacts ==="
+          ls -la dist-artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.platform }}
+          path: dist-artifacts/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: artifacts-*
+          merge-multiple: true
+
+      - name: Generate Checksums
+        shell: bash
+        run: |
+          cd release-artifacts
+          echo "=== Artifacts list for release ==="
+          ls -la
+          sha256sum * > checksums.txt 2>/dev/null || shasum -a 256 * > checksums.txt
+          echo "=== Checksums ==="
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

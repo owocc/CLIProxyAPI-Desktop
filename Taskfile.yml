@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  APP_NAME: "EasyCLIProxyAPI"
+  APP_NAME: "CPA Desktop"
   BIN_DIR: "bin"
   PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
@@ -28,6 +28,16 @@ tasks:
     summary: Packages a production build of the application
     cmds:
       - task: "{{.GOOS}}:package"
+
+  package:all:
+    summary: Packages all production distributions for the current OS
+    cmds:
+      - task: '{{if eq .GOOS "darwin"}}darwin:package:universal:all{{else if eq .GOOS "windows"}}windows:package:all{{else if eq .GOOS "linux"}}linux:package:all{{else}}{{.GOOS}}:package{{end}}'
+
+  build:frontend:
+    summary: Builds the frontend application and bindings
+    cmds:
+      - task: common:build:frontend
 
   run:
     summary: Runs the application

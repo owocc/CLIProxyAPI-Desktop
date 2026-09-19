@@ -1,15 +1,15 @@
 {
 	"fixed": {
-		"file_version": "0.1.0"
+		"file_version": "0.0.1"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "0.1.0",
-			"CompanyName": "nivo",
-			"FileDescription": "A EasyCLIProxyAPI-wails application",
-			"LegalCopyright": "© 2026, nivo",
-			"ProductName": "My Product",
-			"Comments": "This is a comment"
+			"ProductVersion": "0.0.1",
+			"CompanyName": "CPA",
+			"FileDescription": "CPA Desktop",
+			"LegalCopyright": "(c) 2026, CPA",
+			"ProductName": "CPA Desktop",
+			"Comments": "CPA Desktop"
 		}
 	}
 }

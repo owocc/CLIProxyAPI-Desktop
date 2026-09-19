@@ -3,26 +3,26 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "easycliproxyapi-wails"
+name: "cpa-desktop"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "0.0.1"
 section: "default"
 priority: "extra"
-maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A EasyCLIProxyAPI-wails application"
-vendor: "nivo"
-homepage: "https://wails.io"
+maintainer: ${GIT_COMMITTER_NAME:-CPA} <${GIT_COMMITTER_EMAIL:-contact@cpa.desktop}>
+description: "CPA Desktop application"
+vendor: "CPA"
+homepage: "https://github.com/cpa-desktop"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/easycliproxyapi-wails"
-    dst: "/usr/local/bin/easycliproxyapi-wails"
+  - src: "./bin/CPA Desktop"
+    dst: "/usr/local/bin/cpa-desktop"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/easycliproxyapi-wails.png"
-  - src: "./build/linux/easycliproxyapi-wails.desktop"
-    dst: "/usr/share/applications/easycliproxyapi-wails.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/cpa-desktop.png"
+  - src: "./build/linux/CPA Desktop.desktop"
+    dst: "/usr/share/applications/cpa-desktop.desktop"
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
 depends:

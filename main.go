@@ -43,8 +43,8 @@ func main() {
 	}
 
 	app := application.New(application.Options{
-		Name:        "EasyCLIProxyAPI",
-		Description: "EasyCLIProxyAPI",
+		Name:        "CPA Desktop",
+		Description: "CPA Desktop",
 		Services:    appServices,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -78,7 +78,7 @@ func main() {
 
 	// Create initial main window
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "EasyCLIProxyAPI",
+		Title:  "CPA Desktop",
 		Width:     1100,
 		Height:    720,
 		MinWidth:  800,

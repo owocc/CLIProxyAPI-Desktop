@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A EasyCLIProxyAPI-wails application
+Name=CPA Desktop
+Comment=CPA Desktop application
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/easycliproxyapi-wails %u
+Exec=/usr/local/bin/cpa-desktop %u
 Terminal=false
 Type=Application
-Icon=easycliproxyapi-wails
+Icon=cpa-desktop
 Categories=Utility;
-StartupWMClass=easycliproxyapi-wails
+StartupWMClass=CPA Desktop
 
  
