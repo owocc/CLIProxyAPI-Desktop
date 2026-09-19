@@ -16,12 +16,14 @@ var assets embed.FS
 
 func main() {
 	coreService := service.NewCoreService()
+	configService := service.NewConfigService()
 
 	app := application.New(application.Options{
 		Name:        "EasyCLIProxyAPI",
 		Description: "EasyCLIProxyAPI",
 		Services: []application.Service{
 			application.NewService(coreService),
+			application.NewService(configService),
 			application.NewService(&GreetService{}),
 		},
 		Assets: application.AssetOptions{
@@ -33,10 +35,12 @@ func main() {
 	})
 
 	coreService.SetApp(app)
+	configService.SetApp(app)
 
-	// Clean up child processes on app exit
+	// Clean up child processes and watchers on app exit
 	app.OnShutdown(func() {
 		coreService.Teardown()
+		configService.Teardown()
 	})
 
 	// Create main window
