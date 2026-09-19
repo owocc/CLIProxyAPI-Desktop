@@ -1,6 +1,8 @@
 package service
 
 import (
+	"runtime"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -69,6 +71,11 @@ func (ds *DesktopService) QuitApp() error {
 		application.Get().Quit()
 	}
 	return nil
+}
+
+// GetPlatform returns the current operating system (e.g. "darwin", "windows", "linux").
+func (ds *DesktopService) GetPlatform() (string, error) {
+	return runtime.GOOS, nil
 }
 
 // IsLightweightModeEnabled checks if lightweight mode is currently enabled in settings.

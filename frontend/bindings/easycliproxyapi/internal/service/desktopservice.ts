@@ -27,6 +27,13 @@ export function EnterLightweightMode(): $CancellablePromise<void> {
 }
 
 /**
+ * GetPlatform returns the current operating system (e.g. "darwin", "windows", "linux").
+ */
+export function GetPlatform(): $CancellablePromise<string> {
+    return $Call.ByID(1947097643);
+}
+
+/**
  * HideWindow minimizes/hides the main window to the system tray.
  */
 export function HideWindow(): $CancellablePromise<void> {

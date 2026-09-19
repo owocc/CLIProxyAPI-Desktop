@@ -1,6 +1,7 @@
 import React from "react"
 import { useCoreRuntime } from "../context/CoreRuntimeContext"
 import { useTheme } from "../context/ThemeContext"
+import { usePlatform } from "../lib/platform"
 import {
   House,
   Bot,
@@ -10,17 +11,29 @@ import {
   Settings,
   PackageOpen,
   Power,
-  RotateCw,
   AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Terminal,
   SlidersHorizontal,
   Sun,
   Moon,
+  Lock,
 } from "lucide-react"
 import { Button } from "../components/ui/button"
-import { Badge } from "../components/ui/badge"
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarInset,
+  useSidebar,
+} from "../components/ui/sidebar"
+import { cn } from "../lib/utils"
 
 export type AppPageId = "home" | "agents" | "oauth" | "api" | "usage" | "config" | "settings" | "versions"
 
@@ -48,156 +61,125 @@ interface AppShellProps {
   children: React.ReactNode
 }
 
-export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
-  const { status, port, loading, start, stop, restart } = useCoreRuntime()
+function AppShellContent({ activePage, onNavigate, children }: AppShellProps) {
+  const { status, port, loading, start } = useCoreRuntime()
   const { theme, resolvedTheme, setTheme } = useTheme()
+  const { isMac, isWindows } = usePlatform()
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   const isInstalled = status?.installed ?? false
-  const isRunning = status?.running ?? false
   const isReady = status?.ready ?? false
-  const isStarting = status?.starting ?? false
 
   const activeNavItem = navItems.find((item) => item.id === activePage)
   const isLocked = !activeNavItem?.alwaysAvailable && !isReady
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground select-none">
-      {/* Sidebar */}
-      <aside className="flex flex-col w-56 border-r border-border/40 bg-card/50 backdrop-blur-md">
-        {/* Window Draggable Header for macOS traffic lights */}
-        <div
-          className="h-12 flex items-center px-4 pt-1 border-b border-border/30"
-          style={{ WebkitAppRegion: "drag" } as any}
+    <>
+      {/* Shadcn Sidebar with Multi-platform Safe Area Adaptation (fully hidden when collapsed) */}
+      <Sidebar collapsible="offcanvas" variant="sidebar">
+        {/* Sidebar Header: App title hidden; macOS traffic lights safe zone, borderless */}
+        <SidebarHeader
+          className={cn(
+            "h-[52px] justify-center transition-all",
+            isMac ? "pl-20 pr-3" : "px-3"
+          )}
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          {/* Traffic light spacer on Mac */}
-          <div className="w-16" />
-          <div className="flex items-center gap-2 font-semibold text-sm tracking-tight text-foreground">
-            <Terminal className="size-4 text-primary" />
-            <span>EasyCLIProxy</span>
-          </div>
-        </div>
+          {/* Draggable window top safe area with no app title text */}
+          <div className="h-full w-full flex items-center" />
+        </SidebarHeader>
 
         {/* Navigation items */}
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activePage === item.id
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                }`}
-              >
-                <Icon className="size-4 shrink-0" />
-                <span>{item.label}</span>
-              </button>
-            )
-          })}
-        </nav>
+        <SidebarContent className="pt-1">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activePage === item.id
+                  const isItemDisabled = !item.alwaysAvailable && !isReady
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-border/30 text-xs text-muted-foreground/80 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span>核心版本</span>
-            <span className="font-mono text-[11px] text-foreground">
-              {status?.currentVersion
-                ? status.currentVersion.startsWith("v")
-                  ? status.currentVersion
-                  : `v${status.currentVersion}`
-                : "未安装"}
-            </span>
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => onNavigate(item.id)}
+                        className={cn(
+                          "relative transition-all",
+                          isItemDisabled && !isActive && "opacity-60"
+                        )}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                        {isItemDisabled && (
+                          <Lock className="size-3 ml-auto text-muted-foreground/60 shrink-0" />
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        {/* Sidebar Footer with Core status & Port */}
+        <SidebarFooter>
+          <div className="flex flex-col gap-1 text-xs text-sidebar-foreground/70 px-1 py-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-sidebar-foreground/60">核心版本</span>
+              <span className="font-mono text-[11px] text-sidebar-foreground font-medium">
+                {status?.currentVersion
+                  ? status.currentVersion.startsWith("v")
+                    ? status.currentVersion
+                    : `v${status.currentVersion}`
+                  : "未安装"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-sidebar-foreground/60">管理端口</span>
+              <span className="font-mono text-[11px] text-sidebar-foreground font-medium">
+                {port}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span>管理端口</span>
-            <span className="font-mono text-[11px] text-foreground">{port}</span>
-          </div>
-        </div>
-      </aside>
+        </SidebarFooter>
+      </Sidebar>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Top Header Bar */}
+      <SidebarInset className="relative h-screen w-full overflow-hidden">
+        {/* Top Floating Apple-style Header with Gradient Mask and Backdrop Blur */}
         <header
-          className="h-12 border-b border-border/40 bg-card/30 backdrop-blur-md px-6 flex items-center justify-between shrink-0"
-          style={{ WebkitAppRegion: "drag" } as any}
+          className={cn(
+            "absolute top-0 left-0 right-0 z-20 h-[52px] flex items-center justify-between select-none transition-all duration-200 pointer-events-auto",
+            isMac && isCollapsed ? "pl-24 pr-4" : "px-4",
+            isWindows && "pr-5"
+          )}
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          {/* Status Indicator */}
-          <div className="flex items-center gap-3" style={{ WebkitAppRegion: "no-drag" } as any}>
-            {!isInstalled ? (
-              <Badge variant="destructive" className="gap-1.5 font-normal">
-                <AlertCircle className="size-3" />
-                未安装内核
-              </Badge>
-            ) : isStarting ? (
-              <Badge variant="warning" className="gap-1.5 font-normal animate-pulse">
-                <Loader2 className="size-3 animate-spin" />
-                启动中...
-              </Badge>
-            ) : isRunning ? (
-              <Badge variant={isReady ? "success" : "warning"} className="gap-1.5 font-normal">
-                {isReady ? (
-                  <CheckCircle2 className="size-3 text-emerald-500" />
-                ) : (
-                  <Loader2 className="size-3 animate-spin text-amber-500" />
-                )}
-                {isReady ? `运行中 (${port})` : "服务启动中"}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="gap-1.5 font-normal text-muted-foreground">
-                <span className="size-2 rounded-full bg-muted-foreground/40" />
-                已停止
-              </Badge>
-            )}
+          {/* Frosted glass backdrop with top-to-transparent mask (no bottom border line) */}
+          <div
+            className="absolute inset-0 -z-10 bg-background/80 backdrop-blur-sm pointer-events-none transition-all"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%)",
+              maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%)",
+            }}
+          />
 
-            <span className="text-xs text-muted-foreground truncate max-w-sm">
-              {status?.message}
-            </span>
+          {/* Left section: Sidebar toggle */}
+          <div
+            className="flex items-center"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
+            <SidebarTrigger />
           </div>
 
-          {/* Core Controls */}
-          <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" } as any}>
-            {isRunning && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={loading}
-                onClick={restart}
-                title="重启内核"
-                className="gap-1.5 text-xs h-7"
-              >
-                <RotateCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
-                <span>重启</span>
-              </Button>
-            )}
-
-            {!isRunning ? (
-              <Button
-                variant="default"
-                size="sm"
-                disabled={loading || !isInstalled}
-                onClick={start}
-                className="gap-1.5 text-xs h-7"
-              >
-                <Power className="size-3.5" />
-                <span>启动内核</span>
-              </Button>
-            ) : (
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={loading}
-                onClick={stop}
-                className="gap-1.5 text-xs h-7"
-              >
-                <Power className="size-3.5" />
-                <span>停止内核</span>
-              </Button>
-            )}
-
+          {/* Right section: App Controls (Theme toggle) */}
+          <div
+            className="flex items-center gap-2"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
             {/* Quick theme toggle */}
             <Button
               variant="ghost"
@@ -211,8 +193,13 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
           </div>
         </header>
 
-        {/* View container */}
-        <main className="flex-1 overflow-y-auto p-6 bg-background/50">
+        {/* View container occupying full visible height */}
+        <main
+          className={cn(
+            "h-full w-full overflow-y-auto px-6 pb-6 bg-background/50",
+            isLocked ? "pt-[52px] flex items-center justify-center" : "pt-[60px]"
+          )}
+        >
           {isLocked ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4 text-muted-foreground">
@@ -220,7 +207,7 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
               </div>
               <h2 className="text-lg font-semibold mb-2">需要先启动内核</h2>
               <p className="text-sm text-muted-foreground max-w-md mb-6">
-                该功能需要访问 CLIProxyAPI 内核的管理端口。请先点击右上角按钮启动内核，并在服务就绪后继续。
+                该功能需要访问 CLIProxyAPI 内核的管理端口。请先启动内核并在服务就绪后继续。
               </p>
               <Button onClick={start} disabled={loading || !isInstalled} className="gap-2">
                 <Power className="size-4" />
@@ -231,7 +218,15 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
             children
           )}
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </>
+  )
+}
+
+export function AppShell(props: AppShellProps) {
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <AppShellContent {...props} />
+    </SidebarProvider>
   )
 }

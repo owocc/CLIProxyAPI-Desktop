@@ -91,7 +91,7 @@ func (wm *WindowManager) createMainWindowLocked() {
 		Width:  1100,
 		Height: 720,
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 50,
+			InvisibleTitleBarHeight: 52,
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
