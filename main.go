@@ -18,16 +18,25 @@ func main() {
 	coreService := service.NewCoreService()
 	configService := service.NewConfigService()
 	agentService := service.NewAgentService(configService.Manager())
+	usageService, err := service.NewUsageService(configService.Manager())
+	if err != nil {
+		log.Printf("Failed to initialize usage storage: %v", err)
+	}
+
+	appServices := []application.Service{
+		application.NewService(coreService),
+		application.NewService(configService),
+		application.NewService(agentService),
+		application.NewService(&GreetService{}),
+	}
+	if usageService != nil {
+		appServices = append(appServices, application.NewService(usageService))
+	}
 
 	app := application.New(application.Options{
 		Name:        "EasyCLIProxyAPI",
 		Description: "EasyCLIProxyAPI",
-		Services: []application.Service{
-			application.NewService(coreService),
-			application.NewService(configService),
-			application.NewService(agentService),
-			application.NewService(&GreetService{}),
-		},
+		Services:    appServices,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -39,11 +48,17 @@ func main() {
 	coreService.SetApp(app)
 	configService.SetApp(app)
 	agentService.SetApp(app)
+	if usageService != nil {
+		usageService.SetApp(app)
+	}
 
-	// Clean up child processes and watchers on app exit
+	// Clean up child processes, collectors, and watchers on app exit
 	app.OnShutdown(func() {
 		coreService.Teardown()
 		configService.Teardown()
+		if usageService != nil {
+			usageService.Teardown()
+		}
 	})
 
 	// Create main window
@@ -60,7 +75,7 @@ func main() {
 		URL:              "/",
 	})
 
-	err := app.Run()
+	err = app.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

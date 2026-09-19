@@ -8,7 +8,10 @@ export type {
     CoreInstallTask,
     CoreSettings,
     CoreStatus,
+    DailyTrendPoint,
     GuiConfigFile,
     ReleaseAsset,
-    ReleaseInfo
+    ReleaseInfo,
+    UsageRecord,
+    UsageSummary
 } from "./models.js";

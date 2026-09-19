@@ -95,6 +95,18 @@ export interface CoreStatus {
 }
 
 /**
+ * DailyTrendPoint represents daily usage data for charts.
+ */
+export interface DailyTrendPoint {
+    "date": string;
+    "requests": number;
+    "promptTokens": number;
+    "completionTokens": number;
+    "totalTokens": number;
+    "cost": number;
+}
+
+/**
  * GuiConfigFile is the complete representation stored in config.toml.
  */
 export interface GuiConfigFile {
@@ -149,4 +161,34 @@ export interface ReleaseInfo {
     "releaseNotes": string;
     "publishedAt": string;
     "assets": ReleaseAsset[] | null;
+}
+
+/**
+ * UsageRecord represents an individual proxy request log entry with token metrics.
+ */
+export interface UsageRecord {
+    "id": string;
+    "timestamp": number;
+    "timeFormatted": string;
+    "model": string;
+    "provider": string;
+    "promptTokens": number;
+    "completionTokens": number;
+    "totalTokens": number;
+    "durationMs": number;
+    "statusCode": number;
+    "cost": number;
+}
+
+/**
+ * UsageSummary provides aggregated metrics across all or daily records.
+ */
+export interface UsageSummary {
+    "totalRequests": number;
+    "todayRequests": number;
+    "totalPromptTokens": number;
+    "totalCompletionTokens": number;
+    "totalTokens": number;
+    "totalCost": number;
+    "todayCost": number;
 }
