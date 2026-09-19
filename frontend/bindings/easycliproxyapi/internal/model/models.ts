@@ -36,6 +36,36 @@ export interface AgentInfo {
 }
 
 /**
+ * ApiAccessRemarkLocator identifies a provider row by section, name, baseUrl, and keys.
+ */
+export interface ApiAccessRemarkLocator {
+    "providerName": string;
+    "baseUrl": string;
+    "apiKeys": string[] | null;
+}
+
+/**
+ * ApiAccessRemarkQuery queries a saved remark for a given provider.
+ */
+export interface ApiAccessRemarkQuery {
+    "providerSection": string;
+    "providerName": string;
+    "baseUrl": string;
+    "apiKeys": string[] | null;
+}
+
+/**
+ * ApiAccessRemarkUpdate updates remarks for given providers in config.toml.
+ */
+export interface ApiAccessRemarkUpdate {
+    "providerSection": string;
+    "previousRecords": ApiAccessRemarkLocator[] | null;
+    "records": ApiAccessRemarkLocator[] | null;
+    "allRecords": ApiAccessRemarkLocator[] | null;
+    "remark": string;
+}
+
+/**
  * ApiKeyEntry stores an API key with an optional user remark.
  */
 export interface ApiKeyEntry {
@@ -181,6 +211,16 @@ export interface CoreStatus {
 }
 
 /**
+ * GuiApiAccessRemark stores a user-friendly remark for a specific provider record or API key.
+ */
+export interface GuiApiAccessRemark {
+    "providerSection": string;
+    "apiKeyHash": string;
+    "recordHash": string;
+    "remark": string;
+}
+
+/**
  * GuiConfigFile is the complete representation stored in config.toml.
  */
 export interface GuiConfigFile {
@@ -220,6 +260,7 @@ export interface GuiConfigFile {
     "proxyOverride": boolean;
     "allowLan": boolean;
     "apiKeys": ApiKeyEntry[] | null;
+    "apiAccessRemarks": GuiApiAccessRemark[] | null;
     "managementSecretKey"?: string;
 }
 
@@ -309,6 +350,35 @@ export interface OAuthStatusResult {
      */
     "status": string;
     "error"?: string | null;
+}
+
+/**
+ * ProviderHealthProbeRequest represents a latency & connectivity probe request.
+ */
+export interface ProviderHealthProbeRequest {
+    "url": string;
+    "header": { [_ in string]?: string } | null;
+    "data": string;
+
+    /**
+     * "openai-chat" | "openai-responses" | "claude" | "gemini"
+     */
+    "protocol": string;
+    "timeoutMs"?: number | null;
+    "model": string;
+    "source": string;
+    "authIndex": string;
+}
+
+/**
+ * ProviderHealthProbeResponse represents the result of a health probe test.
+ */
+export interface ProviderHealthProbeResponse {
+    "firstTokenLatencyMs"?: number | null;
+    "responseLatencyMs": number;
+    "success": boolean;
+    "error"?: string;
+    "timedOut"?: boolean;
 }
 
 /**

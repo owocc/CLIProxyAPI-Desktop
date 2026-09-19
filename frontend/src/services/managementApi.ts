@@ -106,6 +106,20 @@ export function readBoolean(value: unknown, ...keys: string[]): boolean {
   return false
 }
 
+export function readNumber(value: unknown, ...keys: string[]): number | null {
+  if (!isRecord(value)) {
+    return null
+  }
+  for (const key of keys) {
+    const candidate = value[key]
+    const parsed = typeof candidate === "number" ? candidate : Number(candidate)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+  return null
+}
+
 export function responseList<T = unknown>(response: unknown, ...keys: string[]): T[] {
   if (Array.isArray(response)) {
     return response as T[]

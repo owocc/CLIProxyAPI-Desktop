@@ -119,6 +119,7 @@ func DefaultGuiConfig() model.GuiConfigFile {
 		ApiKeys: []model.ApiKeyEntry{
 			{ApiKey: "123456", Remark: "默认访问密钥"},
 		},
+		ApiAccessRemarks:    []model.GuiApiAccessRemark{},
 		ManagementSecretKey: GenerateManagementSecretKey(),
 	}
 }

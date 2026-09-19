@@ -60,10 +60,43 @@ type ThinkingAlias struct {
 	Provider      string `json:"provider"`
 }
 
+// GuiApiAccessRemark stores a user-friendly remark for a specific provider record or API key.
+type GuiApiAccessRemark struct {
+	ProviderSection string `json:"providerSection" toml:"provider-section"`
+	ApiKeyHash      string `json:"apiKeyHash" toml:"api-key-hash"`
+	RecordHash      string `json:"recordHash" toml:"record-hash"`
+	Remark          string `json:"remark" toml:"remark"`
+}
+
+// ApiAccessRemarkLocator identifies a provider row by section, name, baseUrl, and keys.
+type ApiAccessRemarkLocator struct {
+	ProviderName string   `json:"providerName"`
+	BaseUrl      string   `json:"baseUrl"`
+	ApiKeys      []string `json:"apiKeys"`
+}
+
+// ApiAccessRemarkQuery queries a saved remark for a given provider.
+type ApiAccessRemarkQuery struct {
+	ProviderSection string   `json:"providerSection"`
+	ProviderName    string   `json:"providerName"`
+	BaseUrl         string   `json:"baseUrl"`
+	ApiKeys         []string `json:"apiKeys"`
+}
+
+// ApiAccessRemarkUpdate updates remarks for given providers in config.toml.
+type ApiAccessRemarkUpdate struct {
+	ProviderSection string                   `json:"providerSection"`
+	PreviousRecords []ApiAccessRemarkLocator `json:"previousRecords"`
+	Records         []ApiAccessRemarkLocator `json:"records"`
+	AllRecords      []ApiAccessRemarkLocator `json:"allRecords"`
+	Remark          string                   `json:"remark"`
+}
+
 // GuiConfigFile is the complete representation stored in config.toml.
 type GuiConfigFile struct {
 	GuiSettings
 	CoreSettings
-	ApiKeys             []ApiKeyEntry `json:"apiKeys" toml:"api-keys"`
-	ManagementSecretKey string        `json:"managementSecretKey,omitempty" toml:"management-secret-key"`
+	ApiKeys             []ApiKeyEntry        `json:"apiKeys" toml:"api-keys"`
+	ApiAccessRemarks    []GuiApiAccessRemark `json:"apiAccessRemarks" toml:"api-access-remarks"`
+	ManagementSecretKey string               `json:"managementSecretKey,omitempty" toml:"management-secret-key"`
 }

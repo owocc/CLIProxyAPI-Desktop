@@ -49,7 +49,7 @@ const navItems: NavItem[] = [
   { id: "home", label: "首页概览", icon: House, alwaysAvailable: true },
   { id: "agents", label: "智能体客户端", icon: Bot, alwaysAvailable: true },
   { id: "oauth", label: "OAuth 凭据", icon: KeyRound, alwaysAvailable: false },
-  { id: "api", label: "API 访问", icon: Network, alwaysAvailable: false },
+  { id: "api", label: "API 接入", icon: Network, alwaysAvailable: false },
   { id: "usage", label: "用量账本", icon: History, alwaysAvailable: true },
   { id: "config", label: "内核配置", icon: Settings, alwaysAvailable: true },
   { id: "settings", label: "应用设置", icon: SlidersHorizontal, alwaysAvailable: true },
