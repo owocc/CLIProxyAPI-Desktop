@@ -2,11 +2,14 @@ package config
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,6 +65,28 @@ func NewConfigManager() *ConfigManager {
 	return &ConfigManager{}
 }
 
+// GenerateManagementSecretKey generates a secure random plaintext management secret key formatted as wui-<token>.
+func GenerateManagementSecretKey() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("wui-%d", time.Now().UnixNano())
+	}
+	return "wui-" + base64.RawURLEncoding.EncodeToString(b)
+}
+
+// IsInvalidManagementSecretKey checks if a management secret key is empty, the old default, or a hash pattern.
+func IsInvalidManagementSecretKey(k string) bool {
+	k = strings.TrimSpace(k)
+	if k == "" || k == "123456" {
+		return true
+	}
+	if strings.HasPrefix(k, "$2a$") || strings.HasPrefix(k, "$2b$") || strings.HasPrefix(k, "$argon2") ||
+		strings.HasPrefix(k, "bcrypt:") || strings.HasPrefix(k, "sha256:") {
+		return true
+	}
+	return false
+}
+
 // DefaultGuiConfig returns the default configuration.
 func DefaultGuiConfig() model.GuiConfigFile {
 	return model.GuiConfigFile{
@@ -93,6 +118,7 @@ func DefaultGuiConfig() model.GuiConfigFile {
 		ApiKeys: []model.ApiKeyEntry{
 			{ApiKey: "123456", Remark: "默认访问密钥"},
 		},
+		ManagementSecretKey: GenerateManagementSecretKey(),
 	}
 }
 
@@ -107,6 +133,7 @@ func (cm *ConfigManager) LoadGuiConfig() (model.GuiConfigFile, error) {
 		if os.IsNotExist(err) {
 			def := DefaultGuiConfig()
 			_ = cm.saveGuiConfigLocked(def)
+			_ = cm.syncToYamlLocked(def)
 			return def, nil
 		}
 		return DefaultGuiConfig(), err
@@ -115,6 +142,13 @@ func (cm *ConfigManager) LoadGuiConfig() (model.GuiConfigFile, error) {
 	var cfg model.GuiConfigFile
 	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return DefaultGuiConfig(), fmt.Errorf("解析 config.toml 失败: %w", err)
+	}
+
+	// Auto-rotate missing or invalid hashed management secret key
+	if IsInvalidManagementSecretKey(cfg.ManagementSecretKey) {
+		cfg.ManagementSecretKey = GenerateManagementSecretKey()
+		_ = cm.saveGuiConfigLocked(cfg)
+		_ = cm.syncToYamlLocked(cfg)
 	}
 
 	return cfg, nil
@@ -167,7 +201,7 @@ func (cm *ConfigManager) syncToYamlLocked(cfg model.GuiConfigFile) error {
 		}
 	}
 
-	newYaml, err := ApplySettingsToYamlAST(originalYaml, cfg.CoreSettings, keyStrings)
+	newYaml, err := ApplySettingsToYamlAST(originalYaml, cfg.CoreSettings, keyStrings, cfg.ManagementSecretKey)
 	if err != nil {
 		return err
 	}

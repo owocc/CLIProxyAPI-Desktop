@@ -3,8 +3,8 @@
 
 /**
  * WindowManager coordinates the lifecycle of the primary WebviewWindow,
- * including creating on demand, hiding, and destroying the WebKit process
- * when lightweight mode is engaged.
+ * including creating on demand, hiding, and releasing the WebKit rendering
+ * process when lightweight mode is engaged.
  */
 export interface WindowManager {
 }

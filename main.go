@@ -19,6 +19,7 @@ func main() {
 	coreService := service.NewCoreService()
 	configService := service.NewConfigService()
 	agentService := service.NewAgentService(configService.Manager())
+	oauthService := service.NewOAuthService(configService.Manager())
 	usageService, err := service.NewUsageService(configService.Manager())
 	if err != nil {
 		log.Printf("Failed to initialize usage storage: %v", err)
@@ -30,6 +31,7 @@ func main() {
 		application.NewService(coreService),
 		application.NewService(configService),
 		application.NewService(agentService),
+		application.NewService(oauthService),
 		application.NewService(desktopService),
 		application.NewService(&GreetService{}),
 	}
@@ -52,6 +54,7 @@ func main() {
 	coreService.SetApp(app)
 	configService.SetApp(app)
 	agentService.SetApp(app)
+	oauthService.SetApp(app)
 	desktopService.SetApp(app)
 	if usageService != nil {
 		usageService.SetApp(app)

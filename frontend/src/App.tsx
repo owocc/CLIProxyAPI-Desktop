@@ -5,6 +5,7 @@ import { AppShell, type AppPageId } from "./layouts/AppShell"
 import { HomePage } from "./pages/HomePage"
 import { VersionManagementPage } from "./pages/VersionManagementPage"
 import { AgentsPage } from "./pages/AgentsPage"
+import { OAuthManagementPage } from "./pages/OAuthManagementPage"
 import { ApiAccessPage } from "./pages/ApiAccessPage"
 import { UsageRecordsPage } from "./pages/UsageRecordsPage"
 import { ConfigPanelPage } from "./pages/ConfigPanelPage"
@@ -21,6 +22,8 @@ export function App() {
         return <VersionManagementPage />
       case "agents":
         return <AgentsPage />
+      case "oauth":
+        return <OAuthManagementPage />
       case "api":
         return <ApiAccessPage />
       case "usage":

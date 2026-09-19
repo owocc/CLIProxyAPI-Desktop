@@ -20,10 +20,73 @@ export function ApplyAgentConfig(id: string, modelName: string): $CancellablePro
 }
 
 /**
+ * ApplyClaudeCodeConfig applies fine-grained Claude Code configuration.
+ */
+export function ApplyClaudeCodeConfig(options: model$0.ClaudeCodeConfig): $CancellablePromise<void> {
+    return $Call.ByID(1912806366, options);
+}
+
+/**
+ * ApplyCodexConfig applies fine-grained Codex configuration.
+ */
+export function ApplyCodexConfig(options: model$0.CodexConfig): $CancellablePromise<void> {
+    return $Call.ByID(241264312, options);
+}
+
+/**
+ * CheckCodexOAuthLogin checks if Codex has official OAuth credentials.
+ */
+export function CheckCodexOAuthLogin(): $CancellablePromise<boolean> {
+    return $Call.ByID(4132307566);
+}
+
+/**
+ * CloseAgentConfig removes CPA proxy configuration from the client.
+ */
+export function CloseAgentConfig(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1921184574, id);
+}
+
+/**
+ * CloseCodexConfigModification removes CPA proxy settings from Codex config.toml.
+ */
+export function CloseCodexConfigModification(): $CancellablePromise<void> {
+    return $Call.ByID(3141769068);
+}
+
+/**
  * GetAgent returns discovery status for a single agent.
  */
 export function GetAgent(id: string): $CancellablePromise<model$0.AgentInfo> {
     return $Call.ByID(4234722684, id);
+}
+
+/**
+ * GetAgentDetail returns detailed configuration parameters for an agent client.
+ */
+export function GetAgentDetail(id: string): $CancellablePromise<model$0.AgentDetail> {
+    return $Call.ByID(2289978829, id);
+}
+
+/**
+ * GetAvailableModels returns the list of candidate upstream models for agent selection.
+ */
+export function GetAvailableModels(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2890026240);
+}
+
+/**
+ * GetCodexNativeStatus retrieves the status of Codex native mode and authentication.
+ */
+export function GetCodexNativeStatus(): $CancellablePromise<model$0.CodexNativeStatus> {
+    return $Call.ByID(3321688735);
+}
+
+/**
+ * LaunchAgent opens the agent client in system terminal or opens the app.
+ */
+export function LaunchAgent(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2068057491, id);
 }
 
 /**
@@ -45,6 +108,13 @@ export function ListBackups(id: string): $CancellablePromise<model$0.BackupEntry
  */
 export function RestoreAgentConfig(id: string): $CancellablePromise<void> {
     return $Call.ByID(3384915492, id);
+}
+
+/**
+ * RestoreCodexOfficialConfig resets Codex configuration to official native OpenAI mode.
+ */
+export function RestoreCodexOfficialConfig(): $CancellablePromise<void> {
+    return $Call.ByID(3403428315);
 }
 
 /**

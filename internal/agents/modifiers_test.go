@@ -64,3 +64,14 @@ func TestApplyCodex(t *testing.T) {
 		t.Errorf("expected user setting preserved")
 	}
 }
+
+func TestDiscoverAgent(t *testing.T) {
+	claudeInfo := DiscoverAgent("claude-code")
+	t.Logf("claude-code: installed=%v, version=%q, path=%q", claudeInfo.Installed, claudeInfo.Version, claudeInfo.ExecutablePath)
+
+	codexInfo := DiscoverAgent("codex")
+	t.Logf("codex: installed=%v, version=%q, path=%q", codexInfo.Installed, codexInfo.Version, codexInfo.ExecutablePath)
+
+	opencodeInfo := DiscoverAgent("opencode")
+	t.Logf("opencode: installed=%v, version=%q, path=%q", opencodeInfo.Installed, opencodeInfo.Version, opencodeInfo.ExecutablePath)
+}

@@ -4,6 +4,7 @@ import { useTheme } from "../context/ThemeContext"
 import {
   House,
   Bot,
+  KeyRound,
   Network,
   History,
   Settings,
@@ -21,7 +22,7 @@ import {
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 
-export type AppPageId = "home" | "agents" | "api" | "usage" | "config" | "settings" | "versions"
+export type AppPageId = "home" | "agents" | "oauth" | "api" | "usage" | "config" | "settings" | "versions"
 
 interface NavItem {
   id: AppPageId
@@ -33,6 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: "home", label: "首页概览", icon: House, alwaysAvailable: true },
   { id: "agents", label: "智能体客户端", icon: Bot, alwaysAvailable: true },
+  { id: "oauth", label: "OAuth 凭据", icon: KeyRound, alwaysAvailable: false },
   { id: "api", label: "API 访问", icon: Network, alwaysAvailable: false },
   { id: "usage", label: "用量账本", icon: History, alwaysAvailable: true },
   { id: "config", label: "内核配置", icon: Settings, alwaysAvailable: true },

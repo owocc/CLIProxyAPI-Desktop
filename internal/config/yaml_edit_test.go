@@ -27,8 +27,9 @@ api-keys:
 		Debug: true,
 	}
 	keys := []string{"new-key-1", "new-key-2"}
+	secretKey := "wui-test-secret-key-12345"
 
-	output, err := ApplySettingsToYamlAST([]byte(input), settings, keys)
+	output, err := ApplySettingsToYamlAST([]byte(input), settings, keys, secretKey)
 	if err != nil {
 		t.Fatalf("ApplySettingsToYamlAST error: %v", err)
 	}
@@ -47,5 +48,8 @@ api-keys:
 	}
 	if !strings.Contains(outStr, "new-key-1") {
 		t.Errorf("expected new-key-1 in output")
+	}
+	if !strings.Contains(outStr, "remote-management:") || !strings.Contains(outStr, "secret-key: wui-test-secret-key-12345") {
+		t.Errorf("expected remote-management.secret-key in output")
 	}
 }

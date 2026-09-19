@@ -54,6 +54,37 @@ func SetString(mapping *yaml.Node, key string, value string) {
 	SetScalar(mapping, key, value, "!!str")
 }
 
+// SetNestedScalar sets or creates a scalar within a nested mapping.
+func SetNestedScalar(mapping *yaml.Node, parentKey string, childKey string, value string, tag string) {
+	_, parentVal, _ := FindKeyNode(mapping, parentKey)
+	if parentVal == nil || parentVal.Kind != yaml.MappingNode {
+		// Create parent mapping
+		parentKeyNode := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: parentKey,
+		}
+		newParentVal := &yaml.Node{
+			Kind:    yaml.MappingNode,
+			Tag:     "!!map",
+			Content: []*yaml.Node{},
+		}
+		if parentVal != nil {
+			for i := 0; i < len(mapping.Content)-1; i += 2 {
+				if mapping.Content[i].Value == parentKey {
+					mapping.Content[i+1] = newParentVal
+					break
+				}
+			}
+		} else {
+			mapping.Content = append(mapping.Content, parentKeyNode, newParentVal)
+		}
+		parentVal = newParentVal
+	}
+
+	SetScalar(parentVal, childKey, value, tag)
+}
+
 // SetInt updates an int property.
 func SetInt(mapping *yaml.Node, key string, value int) {
 	SetScalar(mapping, key, strconv.Itoa(value), "!!int")
@@ -145,7 +176,7 @@ func GetMappingRoot(doc *yaml.Node) (*yaml.Node, error) {
 }
 
 // ApplySettingsToYamlAST modifies the YAML bytes preserving all comments and structure.
-func ApplySettingsToYamlAST(originalYaml []byte, settings model.CoreSettings, apiKeys []string) ([]byte, error) {
+func ApplySettingsToYamlAST(originalYaml []byte, settings model.CoreSettings, apiKeys []string, managementSecretKey string) ([]byte, error) {
 	var doc yaml.Node
 	if len(bytes.TrimSpace(originalYaml)) == 0 {
 		doc = yaml.Node{
@@ -207,6 +238,11 @@ func ApplySettingsToYamlAST(originalYaml []byte, settings model.CoreSettings, ap
 	// Apply api-keys if provided
 	if apiKeys != nil {
 		SetStringList(mapping, "api-keys", apiKeys)
+	}
+
+	// Apply remote-management secret-key if provided
+	if managementSecretKey != "" {
+		SetNestedScalar(mapping, "remote-management", "secret-key", managementSecretKey, "!!str")
 	}
 
 	// Encode back with preserved comments and style
