@@ -59,6 +59,25 @@ func (cs *ConfigService) SaveGuiConfig(cfg model.GuiConfigFile) error {
 	return cs.manager.SaveGuiConfig(cfg)
 }
 
+// GetGuiSettings returns only the GUI/desktop settings portion.
+func (cs *ConfigService) GetGuiSettings() (model.GuiSettings, error) {
+	cfg, err := cs.manager.LoadGuiConfig()
+	if err != nil {
+		return model.GuiSettings{}, err
+	}
+	return cfg.GuiSettings, nil
+}
+
+// SaveGuiSettings updates only the GUI/desktop settings portion.
+func (cs *ConfigService) SaveGuiSettings(settings model.GuiSettings) error {
+	cfg, err := cs.manager.LoadGuiConfig()
+	if err != nil {
+		return err
+	}
+	cfg.GuiSettings = settings
+	return cs.manager.SaveGuiConfig(cfg)
+}
+
 // GetCoreSettings returns the core settings portion.
 func (cs *ConfigService) GetCoreSettings() (model.CoreSettings, error) {
 	cfg, err := cs.manager.LoadGuiConfig()

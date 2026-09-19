@@ -4,10 +4,16 @@
 import * as AgentService from "./agentservice.js";
 import * as ConfigService from "./configservice.js";
 import * as CoreService from "./coreservice.js";
+import * as DesktopService from "./desktopservice.js";
 import * as UsageService from "./usageservice.js";
 export {
     AgentService,
     ConfigService,
     CoreService,
+    DesktopService,
     UsageService
 };
+
+export type {
+    WindowManager
+} from "./models.js";

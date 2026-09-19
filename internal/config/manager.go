@@ -66,11 +66,13 @@ func NewConfigManager() *ConfigManager {
 func DefaultGuiConfig() model.GuiConfigFile {
 	return model.GuiConfigFile{
 		GuiSettings: model.GuiSettings{
-			Locale:         "zh-CN",
-			Theme:          "system",
-			RunOnStartup:   false,
-			CloseBehavior:  "minimize-to-tray",
-			DownloadSource: "gh-proxy",
+			Locale:          "zh-CN",
+			Theme:           "system",
+			RunOnStartup:    false,
+			CloseBehavior:   "minimize-to-tray",
+			LightweightMode: false,
+			ShowTrayIcon:    true,
+			DownloadSource:  "gh-proxy",
 		},
 		CoreSettings: model.CoreSettings{
 			Host:                            "127.0.0.1",

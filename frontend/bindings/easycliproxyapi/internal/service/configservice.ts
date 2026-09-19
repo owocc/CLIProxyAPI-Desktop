@@ -36,6 +36,13 @@ export function GetGuiConfig(): $CancellablePromise<model$0.GuiConfigFile> {
     return $Call.ByID(554931725);
 }
 
+/**
+ * GetGuiSettings returns only the GUI/desktop settings portion.
+ */
+export function GetGuiSettings(): $CancellablePromise<model$0.GuiSettings> {
+    return $Call.ByID(3830770930);
+}
+
 export function Manager(): $CancellablePromise<config$0.ConfigManager | null> {
     return $Call.ByID(1669922767);
 }
@@ -59,6 +66,13 @@ export function SaveCoreSettings(settings: model$0.CoreSettings): $CancellablePr
  */
 export function SaveGuiConfig(cfg: model$0.GuiConfigFile): $CancellablePromise<void> {
     return $Call.ByID(1024464262, cfg);
+}
+
+/**
+ * SaveGuiSettings updates only the GUI/desktop settings portion.
+ */
+export function SaveGuiSettings(settings: model$0.GuiSettings): $CancellablePromise<void> {
+    return $Call.ByID(1860272469, settings);
 }
 
 export function SetApp(app: application$0.App | null): $CancellablePromise<void> {

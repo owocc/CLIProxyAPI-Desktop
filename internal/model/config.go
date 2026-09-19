@@ -45,6 +45,8 @@ type GuiSettings struct {
 	Theme                 string   `json:"theme" toml:"theme"`
 	RunOnStartup          bool     `json:"runOnStartup" toml:"run-on-startup"`
 	CloseBehavior         string   `json:"closeBehavior" toml:"close-behavior"`
+	LightweightMode       bool     `json:"lightweightMode" toml:"lightweight-mode"`
+	ShowTrayIcon          bool     `json:"showTrayIcon" toml:"show-tray-icon"`
 	DownloadSource        string   `json:"downloadSource" toml:"download-source"`
 	CustomDownloadMirrors []string `json:"customDownloadMirrors" toml:"custom-download-mirrors"`
 }

@@ -114,6 +114,8 @@ export interface GuiConfigFile {
     "theme": string;
     "runOnStartup": boolean;
     "closeBehavior": string;
+    "lightweightMode": boolean;
+    "showTrayIcon": boolean;
     "downloadSource": string;
     "customDownloadMirrors": string[] | null;
     "host": string;
@@ -140,6 +142,20 @@ export interface GuiConfigFile {
     "allowLan": boolean;
     "apiKeys": ApiKeyEntry[] | null;
     "managementSecretKey"?: string;
+}
+
+/**
+ * GuiSettings represents purely desktop/GUI settings stored in config.toml.
+ */
+export interface GuiSettings {
+    "locale": string;
+    "theme": string;
+    "runOnStartup": boolean;
+    "closeBehavior": string;
+    "lightweightMode": boolean;
+    "showTrayIcon": boolean;
+    "downloadSource": string;
+    "customDownloadMirrors": string[] | null;
 }
 
 /**

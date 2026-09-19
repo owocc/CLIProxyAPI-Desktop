@@ -1,5 +1,6 @@
 import React from "react"
 import { useCoreRuntime } from "../context/CoreRuntimeContext"
+import { useTheme } from "../context/ThemeContext"
 import {
   House,
   Bot,
@@ -13,11 +14,14 @@ import {
   CheckCircle2,
   Loader2,
   Terminal,
+  SlidersHorizontal,
+  Sun,
+  Moon,
 } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 
-export type AppPageId = "home" | "agents" | "api" | "usage" | "config" | "versions"
+export type AppPageId = "home" | "agents" | "api" | "usage" | "config" | "settings" | "versions"
 
 interface NavItem {
   id: AppPageId
@@ -32,6 +36,7 @@ const navItems: NavItem[] = [
   { id: "api", label: "API 访问", icon: Network, alwaysAvailable: false },
   { id: "usage", label: "用量账本", icon: History, alwaysAvailable: true },
   { id: "config", label: "内核配置", icon: Settings, alwaysAvailable: true },
+  { id: "settings", label: "应用设置", icon: SlidersHorizontal, alwaysAvailable: true },
   { id: "versions", label: "版本管理", icon: PackageOpen, alwaysAvailable: true },
 ]
 
@@ -43,6 +48,7 @@ interface AppShellProps {
 
 export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
   const { status, port, loading, start, stop, restart } = useCoreRuntime()
+  const { theme, resolvedTheme, setTheme } = useTheme()
 
   const isInstalled = status?.installed ?? false
   const isRunning = status?.running ?? false
@@ -189,6 +195,17 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
                 <span>停止内核</span>
               </Button>
             )}
+
+            {/* Quick theme toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              title={`当前主题: ${theme === "system" ? "跟随系统" : theme === "dark" ? "深色模式" : "浅色模式"}，点击快速切换`}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            >
+              {resolvedTheme === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
+            </Button>
           </div>
         </header>
 

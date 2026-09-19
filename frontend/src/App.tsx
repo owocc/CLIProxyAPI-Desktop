@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { CoreRuntimeProvider } from "./context/CoreRuntimeContext"
+import { ThemeProvider } from "./context/ThemeContext"
 import { AppShell, type AppPageId } from "./layouts/AppShell"
 import { HomePage } from "./pages/HomePage"
 import { VersionManagementPage } from "./pages/VersionManagementPage"
@@ -7,6 +8,7 @@ import { AgentsPage } from "./pages/AgentsPage"
 import { ApiAccessPage } from "./pages/ApiAccessPage"
 import { UsageRecordsPage } from "./pages/UsageRecordsPage"
 import { ConfigPanelPage } from "./pages/ConfigPanelPage"
+import { AppSettingsPage } from "./pages/AppSettingsPage"
 
 export function App() {
   const [activePage, setActivePage] = useState<AppPageId>("home")
@@ -25,17 +27,21 @@ export function App() {
         return <UsageRecordsPage />
       case "config":
         return <ConfigPanelPage />
+      case "settings":
+        return <AppSettingsPage />
       default:
         return <HomePage onNavigate={setActivePage} />
     }
   }
 
   return (
-    <CoreRuntimeProvider>
-      <AppShell activePage={activePage} onNavigate={setActivePage}>
-        {renderContent()}
-      </AppShell>
-    </CoreRuntimeProvider>
+    <ThemeProvider>
+      <CoreRuntimeProvider>
+        <AppShell activePage={activePage} onNavigate={setActivePage}>
+          {renderContent()}
+        </AppShell>
+      </CoreRuntimeProvider>
+    </ThemeProvider>
   )
 }
 

@@ -10,6 +10,7 @@ export type {
     CoreStatus,
     DailyTrendPoint,
     GuiConfigFile,
+    GuiSettings,
     ReleaseAsset,
     ReleaseInfo,
     UsageRecord,
