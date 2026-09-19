@@ -96,7 +96,11 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
           <div className="flex items-center justify-between">
             <span>核心版本</span>
             <span className="font-mono text-[11px] text-foreground">
-              {status?.currentVersion ? `v${status.currentVersion}` : "未安装"}
+              {status?.currentVersion
+                ? status.currentVersion.startsWith("v")
+                  ? status.currentVersion
+                  : `v${status.currentVersion}`
+                : "未安装"}
             </span>
           </div>
           <div className="flex items-center justify-between">

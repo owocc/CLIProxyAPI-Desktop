@@ -148,7 +148,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
               <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
                 <span className="text-xs text-muted-foreground block mb-1">已装版本</span>
                 <span className="font-mono text-base font-semibold">
-                  {status?.currentVersion ? `v${status.currentVersion}` : "无"}
+                  {status?.currentVersion
+                    ? status.currentVersion.startsWith("v")
+                      ? status.currentVersion
+                      : `v${status.currentVersion}`
+                    : "无"}
                 </span>
               </div>
               <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
