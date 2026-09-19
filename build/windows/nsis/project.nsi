@@ -19,13 +19,12 @@ Unicode true
 ####
 ## The following information is taken from the wails_tools.nsh file, but they can be overwritten here.
 ####
-## !define INFO_PROJECTNAME    "my-project" # Default "EasyCLIProxyAPI-wails"
-## !define INFO_COMPANYNAME    "My Company" # Default "nivo"
-## !define INFO_PRODUCTNAME    "My Product Name" # Default "My Product"
-## !define INFO_PRODUCTVERSION "1.0.0"     # Default "0.1.0"
-## !define INFO_COPYRIGHT      "(c) Now, My Company" # Default "© 2026, nivo"
-###
-## !define PRODUCT_EXECUTABLE  "Application.exe"      # Default "${INFO_PROJECTNAME}.exe"
+!define INFO_PROJECTNAME    "CPA Desktop"
+!define INFO_COMPANYNAME    "CPA"
+!define INFO_PRODUCTNAME    "CPA Desktop"
+!define INFO_PRODUCTVERSION "0.0.1"
+!define INFO_COPYRIGHT      "(c) 2026, CPA"
+!define PRODUCT_EXECUTABLE  "CPA Desktop.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 ####
 ## !define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html

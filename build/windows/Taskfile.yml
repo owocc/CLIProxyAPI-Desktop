@@ -52,10 +52,8 @@ tasks:
         vars:
           ARCH: '{{.ARCH}}'
       - '{{if eq .OBFUSCATED "true"}}garble {{.GARBLE_ARGS}} build{{else}}go build{{end}} {{.BUILD_FLAGS}} -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"'
-      - cmd: powershell Remove-item *.syso
-        platforms: [windows]
       - cmd: rm -f *.syso
-        platforms: [linux, darwin]
+        ignore_error: true
     vars:
       BUILD_FLAGS: '{{if eq .DEV "true"}}{{if or .EXTRA_TAGS (eq .OBFUSCATED "true")}}-tags {{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}} {{end}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui"{{end}}'
     env:
@@ -117,10 +115,12 @@ tasks:
     deps:
       - task: build
     cmds:
-      - cmd: powershell -Command "Compress-Archive -Path '{{.BIN_DIR}}\{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}\{{.APP_NAME}}-windows-{{.ARCH | default ARCH}}.zip' -Force"
+      - cmd: powershell.exe -Command "Compress-Archive -Path '{{.BIN_DIR}}\{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}\{{.APP_NAME}}-windows-{{.ARCH | default ARCH}}.zip' -Force"
         platforms: [windows]
+        ignore_error: true
       - cmd: zip -j "{{.BIN_DIR}}/{{.APP_NAME}}-windows-{{.ARCH | default ARCH}}.zip" "{{.BIN_DIR}}/{{.APP_NAME}}.exe"
         platforms: [darwin, linux]
+        ignore_error: true
 
   generate:syso:
     summary: Generates Windows `.syso` file
@@ -143,9 +143,9 @@ tasks:
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
       - |
         {{if eq OS "windows"}}
-        makensis {{if eq .INSTALL_SCOPE "user"}}-DWAILS_INSTALL_SCOPE=user -DREQUEST_EXECUTION_LEVEL=user {{end}}-DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}.exe" project.nsi
+        makensis {{if eq .INSTALL_SCOPE "user"}}-DWAILS_INSTALL_SCOPE=user -DREQUEST_EXECUTION_LEVEL=user {{end}}"-DARG_WAILS_{{.ARG_FLAG}}_BINARY={{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}.exe" project.nsi
         {{else}}
-        makensis {{if eq .INSTALL_SCOPE "user"}}-DWAILS_INSTALL_SCOPE=user -DREQUEST_EXECUTION_LEVEL=user {{end}}-DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" project.nsi
+        makensis {{if eq .INSTALL_SCOPE "user"}}-DWAILS_INSTALL_SCOPE=user -DREQUEST_EXECUTION_LEVEL=user {{end}}"-DARG_WAILS_{{.ARG_FLAG}}_BINARY={{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" project.nsi
         {{end}}
     vars:
       ARCH: '{{.ARCH | default ARCH}}'
