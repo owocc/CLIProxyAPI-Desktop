@@ -7,6 +7,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as config$0 from "../config/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as model$0 from "../model/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -31,6 +34,10 @@ export function GetCoreSettings(): $CancellablePromise<model$0.CoreSettings> {
  */
 export function GetGuiConfig(): $CancellablePromise<model$0.GuiConfigFile> {
     return $Call.ByID(554931725);
+}
+
+export function Manager(): $CancellablePromise<config$0.ConfigManager | null> {
+    return $Call.ByID(1669922767);
 }
 
 /**

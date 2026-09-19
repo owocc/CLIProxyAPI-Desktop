@@ -17,6 +17,7 @@ var assets embed.FS
 func main() {
 	coreService := service.NewCoreService()
 	configService := service.NewConfigService()
+	agentService := service.NewAgentService(configService.Manager())
 
 	app := application.New(application.Options{
 		Name:        "EasyCLIProxyAPI",
@@ -24,6 +25,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(coreService),
 			application.NewService(configService),
+			application.NewService(agentService),
 			application.NewService(&GreetService{}),
 		},
 		Assets: application.AssetOptions{
@@ -36,6 +38,7 @@ func main() {
 
 	coreService.SetApp(app)
 	configService.SetApp(app)
+	agentService.SetApp(app)
 
 	// Clean up child processes and watchers on app exit
 	app.OnShutdown(func() {

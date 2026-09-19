@@ -35,6 +35,10 @@ func (cs *ConfigService) SetApp(app *application.App) {
 	cs.app = app
 }
 
+func (cs *ConfigService) Manager() *config.ConfigManager {
+	return cs.manager
+}
+
 func (cs *ConfigService) emitEvent(name string, data any) {
 	app := cs.app
 	if app == nil {
